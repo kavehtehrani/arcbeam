@@ -5,6 +5,7 @@ import Image from "next/image";
 import BalanceViewer from "@/components/BalanceViewer";
 import BridgeForm from "@/components/BridgeForm";
 import WalletInfo from "@/components/WalletInfo";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 export default function Home() {
   const [authenticated] = useState(false);
@@ -21,7 +22,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <main className="container mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-12 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
@@ -31,30 +32,32 @@ export default function Home() {
               alt="arcbeam"
               width={48}
               height={48}
-              className="h-12 w-12"
+              className="h-12 w-12 bg-transparent"
+              style={{ background: 'transparent' }}
             />
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              <h1 className="text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
                 arcbeam
               </h1>
-              <p className="mt-2 text-base text-gray-600">
+              <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
                 Bridge USDC between Arc and Sepolia with gasless transactions
               </p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
+            <ThemeSwitcher />
             {authenticated && (
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Wallet Connected
                 </p>
                 <div className="flex items-center justify-end gap-1.5">
-                  <p className="text-xs font-mono text-gray-500">
+                  <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
                     0x0000...0000
                   </p>
                   <button
                     onClick={copyToClipboard}
-                    className="flex items-center justify-center rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    className="flex items-center justify-center rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:text-gray-500"
                     title="Copy address to clipboard"
                   >
                     {copied ? (
@@ -91,11 +94,11 @@ export default function Home() {
               </div>
             )}
             {authenticated ? (
-              <button className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+              <button className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
                 Disconnect
               </button>
             ) : (
-              <button className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800">
+              <button className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
                 Connect Wallet
               </button>
             )}
@@ -115,7 +118,7 @@ export default function Home() {
         </div>
 
         {authenticated && (
-          <div className="mt-8 rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="mt-8 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
             <div className="flex items-start gap-3">
               <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-500">
                 <svg
@@ -133,10 +136,10 @@ export default function Home() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-green-900">
+                <p className="text-sm font-medium text-green-900 dark:text-green-300">
                   Gasless transactions enabled
                 </p>
-                <p className="mt-1 text-xs text-green-700">
+                <p className="mt-1 text-xs text-green-700 dark:text-green-400">
                   All transactions are sponsored via Privy - no gas fees for
                   users
                 </p>
