@@ -705,62 +705,41 @@ export default function BridgeForm() {
             on {sourceChain.name}
           </p>
 
-          {sourceChain && (
-            <div className="mt-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className={`h-4 w-4 ${
-                      parseFloat(currentAllowance) >= parseFloat(amount || "0")
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-yellow-600 dark:text-yellow-400"
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    {parseFloat(currentAllowance) >=
-                    parseFloat(amount || "0") ? (
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    ) : (
+          {sourceChain &&
+            parseFloat(currentAllowance) < parseFloat(amount || "0") && (
+              <div className="mt-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="h-4 w-4 text-yellow-600 dark:text-yellow-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                       />
-                    )}
-                  </svg>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Approved to spend on {sourceChain.name}:
-                  </p>
+                    </svg>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Approved to spend on {sourceChain.name}:
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
+                    {parseFloat(currentAllowance).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    USDC
+                  </span>
                 </div>
-                <span
-                  className={`text-sm font-semibold ${
-                    parseFloat(currentAllowance) >= parseFloat(amount || "0")
-                      ? "text-green-700 dark:text-green-400"
-                      : "text-yellow-700 dark:text-yellow-400"
-                  }`}
-                >
-                  {parseFloat(currentAllowance).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  USDC
-                </span>
-              </div>
-              {parseFloat(currentAllowance) < parseFloat(amount || "0") && (
                 <p className="mt-2 text-xs font-medium text-yellow-700 dark:text-yellow-400">
                   ⚠️ Approval needed to complete this bridge
                 </p>
-              )}
-            </div>
-          )}
+              </div>
+            )}
         </form>
       </div>
     </div>
