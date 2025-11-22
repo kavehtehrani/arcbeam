@@ -1,25 +1,444 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { usePrivy, useWallets, useSendTransaction } from "@privy-io/react-auth";
+import { useSetActiveWallet } from "@privy-io/wagmi";
+import { BrowserProvider } from "ethers";
+import {
+  bridgeUSDC,
+  getUSDCBalance,
+  getFormattedAllowance,
+  getTokenMessengerAddress,
+} from "@/lib/bridge";
+import { createPrivyTransactionWrapper } from "@/lib/PrivyTransactionWrapper";
+import BridgeProgress from "@/components/BridgeProgress";
+import {
+  ARC_CHAIN,
+  ETHEREUM_SEPOLIA_CHAIN,
+  BASE_SEPOLIA_CHAIN,
+  ARBITRUM_SEPOLIA_CHAIN,
+  ChainConfig,
+} from "@/lib/chains";
+
+type BridgeStatus = "idle" | "approving" | "bridging" | "success" | "error";
 
 export default function BridgeForm() {
-  // Visual-only component - no functionality
-  const [amount, setAmount] = useState("");
+  const { ready, authenticated } = usePrivy();
+  const { wallets } = useWallets();
+  const { sendTransaction: privySendTransaction } = useSendTransaction();
+  const { setActiveWallet } = useSetActiveWallet();
+  const defaultAmount = process.env.NEXT_PUBLIC_DEV_DEFAULT_AMOUNT || "";
+  const [amount, setAmount] = useState(defaultAmount);
+  const [sourceChain, setSourceChain] = useState<ChainConfig>(
+    ETHEREUM_SEPOLIA_CHAIN
+  );
+  const [destinationChain, setDestinationChain] =
+    useState<ChainConfig>(BASE_SEPOLIA_CHAIN);
+  const [status, setStatus] = useState<BridgeStatus>("idle");
+  const [txHash, setTxHash] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [ethereumSepoliaBalance, setEthereumSepoliaBalance] = useState("0");
+  const [baseSepoliaBalance, setBaseSepoliaBalance] = useState("0");
+  const [arbitrumSepoliaBalance, setArbitrumSepoliaBalance] = useState("0");
+  const [arcBalance, setArcBalance] = useState("0");
+  const [currentAllowance, setCurrentAllowance] = useState<string>("0");
+  const [spenderAddress, setSpenderAddress] = useState<string>("");
+  const [bridgeSteps, setBridgeSteps] = useState<
+    Array<{
+      step: string;
+      description: string;
+      status: "pending" | "waiting" | "processing" | "completed" | "error";
+    }>
+  >([]);
+  const isBridgingRef = useRef(false);
+  const hasSetActiveWalletRef = useRef(false);
+
+  const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
+  const wallet = embeddedWallet || wallets[0];
+
+  useEffect(() => {
+    if (sourceChain) {
+      const tokenMessenger = getTokenMessengerAddress(sourceChain.chainId);
+      setSpenderAddress(tokenMessenger);
+
+      if (wallet) {
+        getFormattedAllowance(
+          wallet.address,
+          tokenMessenger,
+          sourceChain,
+          sourceChain.rpcUrl
+        )
+          .then((allowance) => {
+            setCurrentAllowance(allowance);
+          })
+          .catch((error) => {
+            console.error("Error fetching allowance:", error);
+            setCurrentAllowance("0");
+          });
+      } else {
+        setCurrentAllowance("0");
+      }
+    }
+  }, [wallet, sourceChain]);
+
+  useEffect(() => {
+    if (
+      embeddedWallet &&
+      ready &&
+      authenticated &&
+      !hasSetActiveWalletRef.current
+    ) {
+      hasSetActiveWalletRef.current = true;
+      const timeoutId = setTimeout(async () => {
+        try {
+          await setActiveWallet(embeddedWallet);
+        } catch (error: unknown) {
+          hasSetActiveWalletRef.current = false;
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (
+            !errorMessage.includes("timeout") &&
+            !errorMessage.includes("400") &&
+            !errorMessage.includes("Bad Request")
+          ) {
+            console.warn("Failed to set active wallet:", errorMessage);
+          }
+        }
+      }, 1500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [embeddedWallet, ready, authenticated, setActiveWallet]);
+
+  useEffect(() => {
+    if (ready && authenticated && wallet) {
+      fetchBalances();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authenticated, wallet]);
+
+  useEffect(() => {
+    if (defaultAmount && !amount && ready && authenticated) {
+      setAmount(defaultAmount);
+    }
+  }, [defaultAmount, amount, ready, authenticated]);
+
+  const fetchBalances = async () => {
+    if (!wallet) return;
+    try {
+      const [ethSepoliaBal, baseSepoliaBal, arbitrumSepoliaBal, arcBal] =
+        await Promise.all([
+          getUSDCBalance(
+            wallet.address,
+            ETHEREUM_SEPOLIA_CHAIN,
+            ETHEREUM_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getUSDCBalance(
+            wallet.address,
+            BASE_SEPOLIA_CHAIN,
+            BASE_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getUSDCBalance(
+            wallet.address,
+            ARBITRUM_SEPOLIA_CHAIN,
+            ARBITRUM_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getUSDCBalance(wallet.address, ARC_CHAIN, ARC_CHAIN.rpcUrl),
+        ]);
+      setEthereumSepoliaBalance(ethSepoliaBal);
+      setBaseSepoliaBalance(baseSepoliaBal);
+      setArbitrumSepoliaBalance(arbitrumSepoliaBal);
+      setArcBalance(arcBal);
+
+      if (spenderAddress && sourceChain) {
+        try {
+          const allowance = await getFormattedAllowance(
+            wallet.address,
+            spenderAddress,
+            sourceChain,
+            sourceChain.rpcUrl
+          );
+          setCurrentAllowance(allowance);
+        } catch (error) {
+          console.error("Error fetching allowance:", error);
+          setCurrentAllowance("0");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+    }
+  };
+
+  const getAvailableBalance = () => {
+    if (sourceChain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId) {
+      return ethereumSepoliaBalance;
+    } else if (sourceChain.chainId === BASE_SEPOLIA_CHAIN.chainId) {
+      return baseSepoliaBalance;
+    } else if (sourceChain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId) {
+      return arbitrumSepoliaBalance;
+    } else if (sourceChain.chainId === ARC_CHAIN.chainId) {
+      return arcBalance;
+    }
+    return "0";
+  };
+
+  const handleBridge = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isBridgingRef.current) {
+      console.warn("Bridge already in progress, ignoring duplicate call");
+      return;
+    }
+
+    if (!ready || !authenticated || !wallet) {
+      setError("Please connect your wallet");
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      setError("Please enter a valid amount");
+      return;
+    }
+
+    const availableBalance = getAvailableBalance();
+    if (parseFloat(amount) > parseFloat(availableBalance)) {
+      setError("Insufficient balance");
+      return;
+    }
+
+    isBridgingRef.current = true;
+    setStatus("bridging");
+    setError("");
+    setTxHash("");
+
+    // Initialize bridge steps tracking
+    setBridgeSteps([
+      {
+        step: "approval",
+        description: "Step 1/3: Approve USDC spending (if needed)",
+        status: "pending",
+      },
+      {
+        step: "burn",
+        description: "Step 2/3: Burn USDC on source chain",
+        status: "pending",
+      },
+      {
+        step: "mint",
+        description: "Step 3/3: Mint USDC on destination chain",
+        status: "pending",
+      },
+    ]);
+
+    // Set up callback for progress updates
+    if (typeof window !== "undefined") {
+      (window as any).bridgeProgressCallback = (progress: {
+        step: string;
+        description: string;
+        status: "pending" | "waiting" | "processing" | "completed" | "error";
+      }) => {
+        setBridgeSteps((prev) => {
+          const updated = [...prev];
+          const stepIndex = updated.findIndex(
+            (s) => s.step === progress.step
+          );
+          if (stepIndex >= 0) {
+            updated[stepIndex] = {
+              ...updated[stepIndex],
+              description: progress.description,
+              status: progress.status,
+            };
+          }
+          return updated;
+        });
+      };
+    }
+
+    try {
+      if (!wallet || wallet.walletClientType !== "privy") {
+        throw new Error(
+          "Only Privy embedded wallets are supported. Please use email login."
+        );
+      }
+
+      const ethereumProvider = await wallet.getEthereumProvider();
+      if (!ethereumProvider) {
+        throw new Error("Failed to get Ethereum provider from wallet");
+      }
+
+      const finalEip1193Provider = createPrivyTransactionWrapper(
+        ethereumProvider,
+        privySendTransaction
+      );
+
+      const provider = new BrowserProvider(finalEip1193Provider as any);
+
+      console.log("Starting bridge transaction...");
+      const result = await bridgeUSDC({
+        amount,
+        sourceChain,
+        destinationChain,
+        userAddress: wallet.address,
+        provider,
+        eip1193Provider: finalEip1193Provider,
+      });
+
+      // Update bridge steps based on result
+      if (result?.steps && result.steps.length > 0) {
+        setBridgeSteps((prev) => {
+          const updated = [...prev];
+          (result.steps || []).forEach((step: {
+            name: string;
+            state: string;
+            errorMessage?: string;
+          }) => {
+            const stepMap: Record<string, number> = {
+              approve: 0,
+              approval: 0,
+              burn: 1,
+              mint: 2,
+            };
+            const stepIndex = stepMap[step.name] ?? -1;
+            if (stepIndex >= 0 && updated[stepIndex]) {
+              updated[stepIndex] = {
+                ...updated[stepIndex],
+                status:
+                  step.state === "success"
+                    ? "completed"
+                    : step.state === "error"
+                    ? "error"
+                    : step.state === "pending"
+                    ? "pending"
+                    : "processing",
+                description:
+                  step.state === "success"
+                    ? `${
+                        updated[stepIndex].description.split(" - ")[0]
+                      } - ✅ Completed`
+                    : step.state === "error"
+                    ? `${
+                        updated[stepIndex].description.split(" - ")[0]
+                      } - ❌ Failed: ${step.errorMessage || "Unknown error"}`
+                    : updated[stepIndex].description,
+              };
+            }
+          });
+          return updated;
+        });
+      }
+
+      if (result.state === "success" && result.sourceTxHash) {
+        setTxHash(result.sourceTxHash);
+        setStatus("success");
+        setError("");
+
+        setTimeout(() => {
+          fetchBalances();
+        }, 3000);
+      } else if (result.state === "partial") {
+        setTxHash(result.sourceTxHash || "");
+        setStatus("error");
+        setError(
+          "Bridge partially completed: Burn succeeded but mint failed. " +
+            "Your funds are in transit. Please try again later."
+        );
+      } else {
+        setStatus("error");
+        setError(result.error || "Bridge transaction failed");
+      }
+    } catch (err: unknown) {
+      console.error("Bridge error:", err);
+
+      let displayMessage =
+        err instanceof Error ? err.message : "Bridge transaction failed";
+      if (displayMessage.includes("timeout")) {
+        displayMessage =
+          "Transaction approval timed out. Please check if a popup appeared and try again.";
+      } else if (
+        displayMessage.includes("User rejected") ||
+        displayMessage.includes("user rejected")
+      ) {
+        displayMessage = "Transaction was rejected. Please try again.";
+      } else if (displayMessage.includes("popup")) {
+        displayMessage =
+          "Please check your browser for approval popups. They may be blocked or hidden.";
+      }
+
+      setError(displayMessage);
+      setStatus("error");
+    } finally {
+      isBridgingRef.current = false;
+
+      if (typeof window !== "undefined") {
+        delete (window as any).bridgeProgressCallback;
+      }
+    }
+  };
+
+  const maxAmount = () => {
+    setAmount(getAvailableBalance());
+  };
+
+  if (!ready || !authenticated) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          Bridge USDC
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Connect your wallet to bridge USDC
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <h2 className="mb-6 text-lg font-semibold text-gray-900 dark:text-white">Bridge USDC</h2>
-      <form className="space-y-5">
+      <h2 className="mb-6 text-lg font-semibold text-gray-900 dark:text-white">
+        Bridge USDC
+      </h2>
+      <form onSubmit={handleBridge} className="space-y-5">
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Source Chain
           </label>
-          <select className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400">
-            <option value="11155111">Ethereum Sepolia</option>
-            <option value="84532">Base Sepolia</option>
-            <option value="421614">Arbitrum Sepolia</option>
-            <option value="arc" disabled>
-              Arc Testnet (Coming soon)
+          <select
+            value={sourceChain.chainId}
+            onChange={(e) => {
+              const chain = [
+                ETHEREUM_SEPOLIA_CHAIN,
+                BASE_SEPOLIA_CHAIN,
+                ARBITRUM_SEPOLIA_CHAIN,
+                ARC_CHAIN,
+              ].find((c) => c.chainId === parseInt(e.target.value));
+              if (chain) {
+                setSourceChain(chain);
+                if (chain.chainId === destinationChain.chainId) {
+                  if (chain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId) {
+                    setDestinationChain(BASE_SEPOLIA_CHAIN);
+                  } else if (chain.chainId === BASE_SEPOLIA_CHAIN.chainId) {
+                    setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+                  } else if (chain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId) {
+                    setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+                  } else {
+                    setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+                  }
+                }
+              }
+            }}
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+            disabled={status === "bridging" || status === "approving"}
+          >
+            <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
+              {ETHEREUM_SEPOLIA_CHAIN.name}
+            </option>
+            <option value={BASE_SEPOLIA_CHAIN.chainId}>
+              {BASE_SEPOLIA_CHAIN.name}
+            </option>
+            <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
+              {ARBITRUM_SEPOLIA_CHAIN.name}
+            </option>
+            <option value={ARC_CHAIN.chainId} disabled>
+              {ARC_CHAIN.name} (Coming soon)
             </option>
           </select>
         </div>
@@ -36,27 +455,170 @@ export default function BridgeForm() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-gray-400"
+              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 disabled:text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+              disabled={status === "bridging" || status === "approving"}
             />
             <button
               type="button"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              onClick={maxAmount}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              disabled={status === "bridging" || status === "approving"}
             >
               Max
             </button>
           </div>
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             Available:{" "}
-            <span className="font-medium text-gray-700 dark:text-gray-300">0.00 USDC</span> on
-            Ethereum Sepolia
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {parseFloat(getAvailableBalance()).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              USDC
+            </span>{" "}
+            on {sourceChain.name}
           </p>
         </div>
 
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        {sourceChain && (
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg
+                  className={`h-4 w-4 ${
+                    parseFloat(currentAllowance) >= parseFloat(amount || "0")
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-yellow-600 dark:text-yellow-400"
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  {parseFloat(currentAllowance) >= parseFloat(amount || "0") ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  )}
+                </svg>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Approved to spend on {sourceChain.name}:
+                </p>
+              </div>
+              <span
+                className={`text-sm font-semibold ${
+                  parseFloat(currentAllowance) >= parseFloat(amount || "0")
+                    ? "text-green-700 dark:text-green-400"
+                    : "text-yellow-700 dark:text-yellow-400"
+                }`}
+              >
+                {parseFloat(currentAllowance).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                USDC
+              </span>
+            </div>
+            {parseFloat(currentAllowance) < parseFloat(amount || "0") && (
+              <p className="mt-2 text-xs font-medium text-yellow-700 dark:text-yellow-400">
+                ⚠️ Approval needed to complete this bridge
+              </p>
+            )}
+          </div>
+        )}
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Destination Chain
+          </label>
+          <select
+            value={destinationChain.chainId}
+            onChange={(e) => {
+              const chain = [
+                ETHEREUM_SEPOLIA_CHAIN,
+                BASE_SEPOLIA_CHAIN,
+                ARBITRUM_SEPOLIA_CHAIN,
+                ARC_CHAIN,
+              ].find((c) => c.chainId === parseInt(e.target.value));
+              if (chain && chain.chainId !== sourceChain.chainId) {
+                setDestinationChain(chain);
+              }
+            }}
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+            disabled={status === "bridging" || status === "approving"}
+          >
+            {sourceChain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId ? (
+              <>
+                <option value={BASE_SEPOLIA_CHAIN.chainId}>
+                  {BASE_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
+                  {ARBITRUM_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={ARC_CHAIN.chainId} disabled>
+                  {ARC_CHAIN.name} (Coming soon)
+                </option>
+              </>
+            ) : sourceChain.chainId === BASE_SEPOLIA_CHAIN.chainId ? (
+              <>
+                <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
+                  {ETHEREUM_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
+                  {ARBITRUM_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={ARC_CHAIN.chainId} disabled>
+                  {ARC_CHAIN.name} (Coming soon)
+                </option>
+              </>
+            ) : sourceChain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId ? (
+              <>
+                <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
+                  {ETHEREUM_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={BASE_SEPOLIA_CHAIN.chainId}>
+                  {BASE_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={ARC_CHAIN.chainId} disabled>
+                  {ARC_CHAIN.name} (Coming soon)
+                </option>
+              </>
+            ) : (
+              <>
+                <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
+                  {ETHEREUM_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={BASE_SEPOLIA_CHAIN.chainId}>
+                  {BASE_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
+                  {ARBITRUM_SEPOLIA_CHAIN.name}
+                </option>
+              </>
+            )}
+          </select>
+        </div>
+
+        {/* Bridge Progress Steps */}
+        {(status === "bridging" || status === "approving") &&
+          bridgeSteps.length > 0 && (
+            <BridgeProgress steps={bridgeSteps} />
+          )}
+
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+            <div className="flex items-start gap-3">
               <svg
-                className="h-4 w-4 text-yellow-600 dark:text-yellow-400"
+                className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -65,55 +627,92 @@ export default function BridgeForm() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Approved to spend on Ethereum Sepolia:
-              </p>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                  {error}
+                </p>
+              </div>
             </div>
-            <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">0.00 USDC</span>
           </div>
-        </div>
+        )}
 
-        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-700/50">
-          <input
-            type="checkbox"
-            id="gasSponsorship"
-            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-900 dark:border-gray-600 dark:text-gray-400"
-          />
-          <label
-            htmlFor="gasSponsorship"
-            className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            <span className="font-medium">Enable Gas Sponsorship</span>
-            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-              (Experimental - uses Pimlico smart accounts)
-            </span>
-          </label>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Destination Chain
-          </label>
-          <select className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400">
-            <option value="84532">Base Sepolia</option>
-            <option value="421614">Arbitrum Sepolia</option>
-            <option value="arc" disabled>
-              Arc Testnet (Coming soon)
-            </option>
-          </select>
-        </div>
+        {status === "success" && txHash && (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+            <div className="flex items-start gap-3">
+              <svg
+                className="h-5 w-5 shrink-0 text-green-600 dark:text-green-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-900 dark:text-green-300">
+                  Bridge successful!
+                </p>
+                <p className="mt-1 text-xs text-green-700 dark:text-green-400">
+                  Transaction:{" "}
+                  <a
+                    href={`${sourceChain.blockExplorer}/tx/${txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono underline hover:text-green-900 dark:hover:text-green-200"
+                  >
+                    {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <button
           type="submit"
-          className="w-full rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+          disabled={
+            status === "bridging" ||
+            status === "approving" ||
+            !amount ||
+            parseFloat(amount) <= 0
+          }
+          className="w-full rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
         >
-          Bridge USDC
+          {status === "bridging" || status === "approving" ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg
+                className="h-5 w-5 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Processing...
+            </span>
+          ) : (
+            "Bridge USDC"
+          )}
         </button>
       </form>
     </div>
   );
 }
-

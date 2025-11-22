@@ -14,7 +14,8 @@ export const ETHEREUM_SEPOLIA_CHAIN: ChainConfig = {
   name: "Ethereum Sepolia",
   rpcUrl:
     process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL ??
-    process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_FALLBACK,
+    process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_FALLBACK ??
+    "https://eth-sepolia.api.onfinality.io/public",
   usdcAddress:
     process.env.NEXT_PUBLIC_SEPOLIA_USDC_ADDRESS ??
     "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
@@ -28,7 +29,8 @@ export const BASE_SEPOLIA_CHAIN: ChainConfig = {
   name: "Base Sepolia",
   rpcUrl:
     process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL ??
-    process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL_FALLBACK,
+    process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL_FALLBACK ??
+    "https://sepolia.base.org",
   usdcAddress:
     process.env.NEXT_PUBLIC_BASE_SEPOLIA_USDC_ADDRESS ??
     "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
@@ -42,7 +44,8 @@ export const ARBITRUM_SEPOLIA_CHAIN: ChainConfig = {
   name: "Arbitrum Sepolia",
   rpcUrl:
     process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL ??
-    process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL_FALLBACK,
+    process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL_FALLBACK ??
+    "https://sepolia-rollup.arbitrum.io/rpc",
   usdcAddress:
     process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_USDC_ADDRESS ??
     "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",

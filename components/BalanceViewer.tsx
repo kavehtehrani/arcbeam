@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { BrowserProvider } from "ethers";
 import { getUSDCBalance, getETHBalance } from "@/lib/bridge";
 import {
   ARC_CHAIN,
