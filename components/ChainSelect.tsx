@@ -45,7 +45,7 @@ export default function ChainSelect({
   const selectedLogoPath = getChainLogoPath(value.name);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative flex h-full w-full min-w-0 flex-col" ref={dropdownRef}>
       <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
         {label}
       </label>
@@ -53,7 +53,7 @@ export default function ChainSelect({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-left text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+        className="w-full min-w-0 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-left text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
       >
         <div className="flex items-center gap-3">
           {selectedLogoPath ? (

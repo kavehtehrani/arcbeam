@@ -472,36 +472,42 @@ export default function BridgeForm() {
       </div>
       <div className="p-6">
         <form onSubmit={handleBridge} className="space-y-5">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
-            <ChainSelect
-              label="Source Chain"
-              value={sourceChain}
-              onChange={(chain) => {
-                setSourceChain(chain);
-                if (chain.chainId === destinationChain.chainId) {
-                  if (chain.chainId === ARC_CHAIN.chainId) {
-                    setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
-                  } else if (chain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId) {
-                    setDestinationChain(ARC_CHAIN);
-                  } else if (chain.chainId === BASE_SEPOLIA_CHAIN.chainId) {
-                    setDestinationChain(ARC_CHAIN);
-                  } else if (chain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId) {
-                    setDestinationChain(ARC_CHAIN);
-                  } else {
-                    setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+          <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-4">
+            <div className="flex min-w-0 flex-col">
+              <ChainSelect
+                label="Source Chain"
+                value={sourceChain}
+                onChange={(chain) => {
+                  setSourceChain(chain);
+                  if (chain.chainId === destinationChain.chainId) {
+                    if (chain.chainId === ARC_CHAIN.chainId) {
+                      setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+                    } else if (
+                      chain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId
+                    ) {
+                      setDestinationChain(ARC_CHAIN);
+                    } else if (chain.chainId === BASE_SEPOLIA_CHAIN.chainId) {
+                      setDestinationChain(ARC_CHAIN);
+                    } else if (
+                      chain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId
+                    ) {
+                      setDestinationChain(ARC_CHAIN);
+                    } else {
+                      setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+                    }
                   }
-                }
-              }}
-              options={[
-                ARC_CHAIN,
-                ETHEREUM_SEPOLIA_CHAIN,
-                BASE_SEPOLIA_CHAIN,
-                ARBITRUM_SEPOLIA_CHAIN,
-              ]}
-              disabled={status === "bridging" || status === "approving"}
-            />
+                }}
+                options={[
+                  ARC_CHAIN,
+                  ETHEREUM_SEPOLIA_CHAIN,
+                  BASE_SEPOLIA_CHAIN,
+                  ARBITRUM_SEPOLIA_CHAIN,
+                ]}
+                disabled={status === "bridging" || status === "approving"}
+              />
+            </div>
 
-            <div className="flex items-center justify-center pb-2">
+            <div className="flex items-center justify-center">
               <svg
                 className="h-6 w-6 text-gray-400 dark:text-gray-500"
                 fill="none"
@@ -517,117 +523,25 @@ export default function BridgeForm() {
               </svg>
             </div>
 
-            <ChainSelect
-              label="Destination Chain"
-              value={destinationChain}
-              onChange={(chain) => {
-                if (chain.chainId !== sourceChain.chainId) {
-                  setDestinationChain(chain);
-                }
-              }}
-              options={[
-                ARC_CHAIN,
-                ETHEREUM_SEPOLIA_CHAIN,
-                BASE_SEPOLIA_CHAIN,
-                ARBITRUM_SEPOLIA_CHAIN,
-              ].filter((chain) => chain.chainId !== sourceChain.chainId)}
-              disabled={status === "bridging" || status === "approving"}
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Amount
-            </label>
-            <div className="flex gap-3">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 disabled:text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+            <div className="flex min-w-0 flex-col">
+              <ChainSelect
+                label="Destination Chain"
+                value={destinationChain}
+                onChange={(chain) => {
+                  if (chain.chainId !== sourceChain.chainId) {
+                    setDestinationChain(chain);
+                  }
+                }}
+                options={[
+                  ARC_CHAIN,
+                  ETHEREUM_SEPOLIA_CHAIN,
+                  BASE_SEPOLIA_CHAIN,
+                  ARBITRUM_SEPOLIA_CHAIN,
+                ].filter((chain) => chain.chainId !== sourceChain.chainId)}
                 disabled={status === "bridging" || status === "approving"}
               />
-              <button
-                type="button"
-                onClick={maxAmount}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                disabled={status === "bridging" || status === "approving"}
-              >
-                Max
-              </button>
             </div>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Available:{" "}
-              <span className="font-medium text-gray-700 dark:text-gray-300">
-                {parseFloat(getAvailableBalance()).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{" "}
-                USDC
-              </span>{" "}
-              on {sourceChain.name}
-            </p>
           </div>
-
-          {sourceChain && (
-            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className={`h-4 w-4 ${
-                      parseFloat(currentAllowance) >= parseFloat(amount || "0")
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-yellow-600 dark:text-yellow-400"
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    {parseFloat(currentAllowance) >=
-                    parseFloat(amount || "0") ? (
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    ) : (
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    )}
-                  </svg>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Approved to spend on {sourceChain.name}:
-                  </p>
-                </div>
-                <span
-                  className={`text-sm font-semibold ${
-                    parseFloat(currentAllowance) >= parseFloat(amount || "0")
-                      ? "text-green-700 dark:text-green-400"
-                      : "text-yellow-700 dark:text-yellow-400"
-                  }`}
-                >
-                  {parseFloat(currentAllowance).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  USDC
-                </span>
-              </div>
-              {parseFloat(currentAllowance) < parseFloat(amount || "0") && (
-                <p className="mt-2 text-xs font-medium text-yellow-700 dark:text-yellow-400">
-                  ⚠️ Approval needed to complete this bridge
-                </p>
-              )}
-            </div>
-          )}
 
           <div className="flex items-center gap-2">
             <input
@@ -714,43 +628,139 @@ export default function BridgeForm() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={
-              status === "bridging" ||
-              status === "approving" ||
-              !amount ||
-              parseFloat(amount) <= 0
-            }
-            className="w-full rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
-          >
-            {status === "bridging" || status === "approving" ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg
-                  className="h-5 w-5 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
+          <div className="flex gap-3">
+            <div className="relative flex flex-1 items-stretch">
+              <label className="flex items-center rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 px-4 text-sm font-medium text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 whitespace-nowrap">
+                Amount
+              </label>
+              <div className="relative flex-1">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-r-lg rounded-l-none border border-gray-300 bg-white px-4 py-2.5 pr-16 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 disabled:text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+                  disabled={status === "bridging" || status === "approving"}
+                />
+                <button
+                  type="button"
+                  onClick={maxAmount}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-3 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-600"
+                  disabled={status === "bridging" || status === "approving"}
                 >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
+                  Max
+                </button>
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={
+                status === "bridging" ||
+                status === "approving" ||
+                !amount ||
+                parseFloat(amount) <= 0
+              }
+              className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+            >
+              {status === "bridging" || status === "approving" ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                "Bridge USDC"
+              )}
+            </button>
+          </div>
+
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Available:{" "}
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {parseFloat(getAvailableBalance()).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              USDC
+            </span>{" "}
+            on {sourceChain.name}
+          </p>
+
+          {sourceChain && (
+            <div className="mt-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <svg
+                    className={`h-4 w-4 ${
+                      parseFloat(currentAllowance) >= parseFloat(amount || "0")
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-yellow-600 dark:text-yellow-400"
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              "Bridge USDC"
-            )}
-          </button>
+                  >
+                    {parseFloat(currentAllowance) >=
+                    parseFloat(amount || "0") ? (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    ) : (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    )}
+                  </svg>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Approved to spend on {sourceChain.name}:
+                  </p>
+                </div>
+                <span
+                  className={`text-sm font-semibold ${
+                    parseFloat(currentAllowance) >= parseFloat(amount || "0")
+                      ? "text-green-700 dark:text-green-400"
+                      : "text-yellow-700 dark:text-yellow-400"
+                  }`}
+                >
+                  {parseFloat(currentAllowance).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  USDC
+                </span>
+              </div>
+              {parseFloat(currentAllowance) < parseFloat(amount || "0") && (
+                <p className="mt-2 text-xs font-medium text-yellow-700 dark:text-yellow-400">
+                  ⚠️ Approval needed to complete this bridge
+                </p>
+              )}
+            </div>
+          )}
         </form>
       </div>
     </div>

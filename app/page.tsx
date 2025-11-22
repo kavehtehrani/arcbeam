@@ -76,11 +76,11 @@ export default function Home() {
             <div className="flex-1 p-4 sm:flex-none sm:p-0">
               <div className="flex w-full items-center justify-between gap-3 sm:justify-end">
                 {ready && authenticated && (
-                  <div className="flex-1 text-right sm:flex-none">
+                  <div className="flex-1 text-left sm:flex-none sm:text-right">
                     <p className="text-sm font-medium text-green-600 dark:text-green-400">
                       Wallet Connected
                     </p>
-                    <div className="flex items-center justify-end gap-1.5">
+                    <div className="flex items-center gap-1.5 sm:justify-end">
                       <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
                         {displayAddress}
                       </p>
