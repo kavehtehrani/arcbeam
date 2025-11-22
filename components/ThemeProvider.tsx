@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from "react";
 
 type Theme = "light" | "dark";
 
@@ -25,8 +31,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [mounted, setMounted] = useState(false);
 
-  // Initialize theme on mount
-  useEffect(() => {
+  // Initialize theme on mount - use useLayoutEffect to avoid hydration mismatch
+  useLayoutEffect(() => {
     const root = document.documentElement;
 
     // First, ensure we start with a clean state - remove dark class
@@ -47,6 +53,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("theme", initialTheme);
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
