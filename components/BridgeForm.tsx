@@ -238,9 +238,7 @@ export default function BridgeForm() {
       }) => {
         setBridgeSteps((prev) => {
           const updated = [...prev];
-          const stepIndex = updated.findIndex(
-            (s) => s.step === progress.step
-          );
+          const stepIndex = updated.findIndex((s) => s.step === progress.step);
           if (stepIndex >= 0) {
             updated[stepIndex] = {
               ...updated[stepIndex],
@@ -286,42 +284,40 @@ export default function BridgeForm() {
       if (result?.steps && result.steps.length > 0) {
         setBridgeSteps((prev) => {
           const updated = [...prev];
-          (result.steps || []).forEach((step: {
-            name: string;
-            state: string;
-            errorMessage?: string;
-          }) => {
-            const stepMap: Record<string, number> = {
-              approve: 0,
-              approval: 0,
-              burn: 1,
-              mint: 2,
-            };
-            const stepIndex = stepMap[step.name] ?? -1;
-            if (stepIndex >= 0 && updated[stepIndex]) {
-              updated[stepIndex] = {
-                ...updated[stepIndex],
-                status:
-                  step.state === "success"
-                    ? "completed"
-                    : step.state === "error"
-                    ? "error"
-                    : step.state === "pending"
-                    ? "pending"
-                    : "processing",
-                description:
-                  step.state === "success"
-                    ? `${
-                        updated[stepIndex].description.split(" - ")[0]
-                      } - ✅ Completed`
-                    : step.state === "error"
-                    ? `${
-                        updated[stepIndex].description.split(" - ")[0]
-                      } - ❌ Failed: ${step.errorMessage || "Unknown error"}`
-                    : updated[stepIndex].description,
+          (result.steps || []).forEach(
+            (step: { name: string; state: string; errorMessage?: string }) => {
+              const stepMap: Record<string, number> = {
+                approve: 0,
+                approval: 0,
+                burn: 1,
+                mint: 2,
               };
+              const stepIndex = stepMap[step.name] ?? -1;
+              if (stepIndex >= 0 && updated[stepIndex]) {
+                updated[stepIndex] = {
+                  ...updated[stepIndex],
+                  status:
+                    step.state === "success"
+                      ? "completed"
+                      : step.state === "error"
+                      ? "error"
+                      : step.state === "pending"
+                      ? "pending"
+                      : "processing",
+                  description:
+                    step.state === "success"
+                      ? `${
+                          updated[stepIndex].description.split(" - ")[0]
+                        } - ✅ Completed`
+                      : step.state === "error"
+                      ? `${
+                          updated[stepIndex].description.split(" - ")[0]
+                        } - ❌ Failed: ${step.errorMessage || "Unknown error"}`
+                      : updated[stepIndex].description,
+                };
+              }
             }
-          });
+          );
           return updated;
         });
       }
@@ -610,9 +606,7 @@ export default function BridgeForm() {
 
         {/* Bridge Progress Steps */}
         {(status === "bridging" || status === "approving") &&
-          bridgeSteps.length > 0 && (
-            <BridgeProgress steps={bridgeSteps} />
-          )}
+          bridgeSteps.length > 0 && <BridgeProgress steps={bridgeSteps} />}
 
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">

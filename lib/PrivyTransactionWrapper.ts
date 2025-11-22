@@ -57,8 +57,16 @@ export function createPrivyTransactionWrapper(
           };
         } else if (tx.data && tx.data.startsWith("0xd0d4229a")) {
           // Bridge burn: depositForBurn
-          updateBridgeProgress("approval", "completed", "Step 1/3: Approval completed ✅");
-          updateBridgeProgress("burn", "processing", "Step 2/3: Burning USDC on source chain...");
+          updateBridgeProgress(
+            "approval",
+            "completed",
+            "Step 1/3: Approval completed ✅"
+          );
+          updateBridgeProgress(
+            "burn",
+            "processing",
+            "Step 2/3: Burning USDC on source chain..."
+          );
           uiOptions = {
             header: "Step 2/3: Burn USDC on Source Chain",
             description:
@@ -70,8 +78,16 @@ export function createPrivyTransactionWrapper(
           (tx.data.startsWith("0x8d7f3f70") || tx.data.length > 200)
         ) {
           // Bridge mint: receiveMessage
-          updateBridgeProgress("burn", "completed", "Step 2/3: Burn completed ✅");
-          updateBridgeProgress("mint", "processing", "Step 3/3: Minting USDC on destination chain...");
+          updateBridgeProgress(
+            "burn",
+            "completed",
+            "Step 2/3: Burn completed ✅"
+          );
+          updateBridgeProgress(
+            "mint",
+            "processing",
+            "Step 3/3: Minting USDC on destination chain..."
+          );
           uiOptions = {
             header: "Step 3/3: Mint USDC on Destination Chain",
             description:
@@ -184,4 +200,3 @@ export function createPrivyTransactionWrapper(
     },
   };
 }
-
