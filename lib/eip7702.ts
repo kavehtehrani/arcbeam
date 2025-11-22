@@ -29,7 +29,7 @@ import { ChainConfig } from "./chains";
 // - If Arc is source: only mint step (on destination) is sponsored
 // - If Arc is destination: only approval/burn steps (on source) are sponsored
 const SIMPLE_ACCOUNT_ADDRESSES: Record<number, string> = {
-  11155111: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Ethereum Sepolia
+  11155111: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Sepolia
   84532: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Base Sepolia
   421614: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Arbitrum Sepolia
   11155420: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // OP Sepolia

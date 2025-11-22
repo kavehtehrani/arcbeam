@@ -22,13 +22,13 @@ export default function BalanceViewer() {
   const { ready, authenticated } = usePrivy();
   const { wallets } = useWallets();
   const [balances, setBalances] = useState<{
-    ethereumSepolia: ChainBalances;
+    sepolia: ChainBalances;
     baseSepolia: ChainBalances;
     arbitrumSepolia: ChainBalances;
     opSepolia: ChainBalances;
     arc: ChainBalances;
   }>({
-    ethereumSepolia: { usdc: "0", eth: "0" },
+    sepolia: { usdc: "0", eth: "0" },
     baseSepolia: { usdc: "0", eth: "0" },
     arbitrumSepolia: { usdc: "0", eth: "0" },
     opSepolia: { usdc: "0", eth: "0" },
@@ -53,7 +53,7 @@ export default function BalanceViewer() {
         embeddedWallet.walletClientType !== "privy"
       ) {
         setBalances({
-          ethereumSepolia: { usdc: "0", eth: "0" },
+          sepolia: { usdc: "0", eth: "0" },
           baseSepolia: { usdc: "0", eth: "0" },
           arbitrumSepolia: { usdc: "0", eth: "0" },
           opSepolia: { usdc: "0", eth: "0" },
@@ -85,8 +85,8 @@ export default function BalanceViewer() {
       try {
         const [
           arcUSDC,
-          ethereumSepoliaUSDC,
-          ethereumSepoliaETH,
+          sepoliaUSDC,
+          sepoliaETH,
           baseSepoliaUSDC,
           baseSepoliaETH,
           arbitrumSepoliaUSDC,
@@ -142,9 +142,9 @@ export default function BalanceViewer() {
             usdc: arcUSDC,
             eth: "0",
           },
-          ethereumSepolia: {
-            usdc: ethereumSepoliaUSDC,
-            eth: ethereumSepoliaETH,
+          sepolia: {
+            usdc: sepoliaUSDC,
+            eth: sepoliaETH,
           },
           baseSepolia: {
             usdc: baseSepoliaUSDC,
@@ -165,9 +165,9 @@ export default function BalanceViewer() {
             usdc: arcUSDC,
             eth: "0",
           },
-          ethereumSepolia: {
-            usdc: ethereumSepoliaUSDC,
-            eth: ethereumSepoliaETH,
+          sepolia: {
+            usdc: sepoliaUSDC,
+            eth: sepoliaETH,
           },
           baseSepolia: { usdc: baseSepoliaUSDC, eth: baseSepoliaETH },
           arbitrumSepolia: {
@@ -187,7 +187,7 @@ export default function BalanceViewer() {
           stack: error instanceof Error ? error.stack : undefined,
           walletAddress,
           rpcUrls: {
-            ethereumSepolia: ETHEREUM_SEPOLIA_CHAIN.rpcUrl,
+            sepolia: ETHEREUM_SEPOLIA_CHAIN.rpcUrl,
             baseSepolia: BASE_SEPOLIA_CHAIN.rpcUrl,
           },
         });
@@ -214,7 +214,7 @@ export default function BalanceViewer() {
       return () => clearTimeout(timeoutId);
     } else if (!ready || !authenticated || !embeddedWallet || !walletAddress) {
       setBalances({
-        ethereumSepolia: { usdc: "0", eth: "0" },
+        sepolia: { usdc: "0", eth: "0" },
         baseSepolia: { usdc: "0", eth: "0" },
         arbitrumSepolia: { usdc: "0", eth: "0" },
         opSepolia: { usdc: "0", eth: "0" },
@@ -275,16 +275,16 @@ export default function BalanceViewer() {
       ],
     },
     {
-      chain: "Ethereum Sepolia",
+      chain: "Sepolia",
       tokens: [
         {
           symbol: "USDC",
-          balance: balances.ethereumSepolia.usdc,
+          balance: balances.sepolia.usdc,
           decimals: 2,
         },
         {
           symbol: "ETH",
-          balance: balances.ethereumSepolia.eth,
+          balance: balances.sepolia.eth,
           decimals: 4,
         },
       ],

@@ -221,7 +221,7 @@ export default function PrivyProviderWrapper({
           },
           // Configure supported chains for Privy (required for custom chains like Arc Testnet)
           // This ensures Privy's embedded wallets recognize and can switch to these chains
-          defaultChain: sepolia, // Default to Ethereum Sepolia
+          defaultChain: sepolia, // Default to Sepolia
           supportedChains: [
             sepolia,
             baseSepolia,

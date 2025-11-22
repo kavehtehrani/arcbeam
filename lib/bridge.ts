@@ -286,7 +286,7 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
         state: "error",
         error:
           `Bridge not supported: ${sourceChain.name} → ${destinationChain.name}. ` +
-          `Please use Arc Testnet, Ethereum Sepolia, Base Sepolia, or Arbitrum Sepolia.`,
+          `Please use Arc Testnet, Sepolia, Base Sepolia, or Arbitrum Sepolia.`,
       };
     }
 

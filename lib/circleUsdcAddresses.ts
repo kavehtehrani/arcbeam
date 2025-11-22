@@ -188,7 +188,7 @@ export const CIRCLE_USDC_ADDRESSES: Record<string, UsdcAddressConfig> = {
   "Codex Testnet": {
     testnet: USDC_CODEX_TESTNET,
   },
-  "Ethereum Sepolia": {
+  "Sepolia": {
     testnet: USDC_ETHEREUM_SEPOLIA,
   },
   "Hedera Testnet": {
@@ -267,7 +267,7 @@ export const CIRCLE_USDC_ADDRESSES: Record<string, UsdcAddressConfig> = {
 
 /**
  * Get USDC address for a chain by name and network type
- * @param chainName - Name of the chain (e.g., "Ethereum Sepolia", "Base Sepolia")
+ * @param chainName - Name of the chain (e.g., "Sepolia", "Base Sepolia")
  * @param isTestnet - Whether to get testnet or mainnet address
  * @returns USDC contract address or undefined if not found
  */
@@ -297,7 +297,7 @@ export const CHAIN_ID_TO_USDC_ADDRESS: Record<number, string> = {
   1329: USDC_SEI_MAINNET, // Sei
   146: USDC_SONIC_MAINNET, // Sonic
   // Testnet
-  11155111: USDC_ETHEREUM_SEPOLIA, // Ethereum Sepolia
+  11155111: USDC_ETHEREUM_SEPOLIA, // Sepolia
   421614: USDC_ARBITRUM_SEPOLIA, // Arbitrum Sepolia
   43113: USDC_AVALANCHE_FUJI, // Avalanche Fuji
   84532: USDC_BASE_SEPOLIA, // Base Sepolia

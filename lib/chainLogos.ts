@@ -8,7 +8,7 @@ const chainLogosMapping: Record<
     icon_id: "icon-blockchain/arc",
     path: "/logos/arc-testnet.svg",
   },
-  "Ethereum Sepolia": {
+  "Sepolia": {
     filename: "ethereum-sepolia.svg",
     icon_id: "icon-eth",
     path: "/logos/ethereum-sepolia.svg",
@@ -27,7 +27,7 @@ const chainLogosMapping: Record<
 
 /**
  * Get the logo path for a chain name
- * @param chainName - The name of the chain (e.g., "Ethereum Sepolia", "Arc Testnet")
+ * @param chainName - The name of the chain (e.g., "Sepolia", "Arc Testnet")
  * @returns The path to the logo SVG file, or null if not found
  */
 export function getChainLogoPath(chainName: string): string | null {

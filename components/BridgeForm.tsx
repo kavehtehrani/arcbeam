@@ -54,7 +54,7 @@ export default function BridgeForm() {
   const [status, setStatus] = useState<BridgeStatus>("idle");
   const [txHash, setTxHash] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [ethereumSepoliaBalance, setEthereumSepoliaBalance] = useState("0");
+  const [sepoliaBalance, setSepoliaBalance] = useState("0");
   const [baseSepoliaBalance, setBaseSepoliaBalance] = useState("0");
   const [arbitrumSepoliaBalance, setArbitrumSepoliaBalance] = useState("0");
   const [opSepoliaBalance, setOpSepoliaBalance] = useState("0");
@@ -198,7 +198,7 @@ export default function BridgeForm() {
         ),
         getUSDCBalance(wallet.address, ARC_CHAIN, ARC_CHAIN.rpcUrl),
       ]);
-      setEthereumSepoliaBalance(ethSepoliaBal);
+      setSepoliaBalance(ethSepoliaBal);
       setBaseSepoliaBalance(baseSepoliaBal);
       setArbitrumSepoliaBalance(arbitrumSepoliaBal);
       setOpSepoliaBalance(opSepoliaBal);
@@ -225,7 +225,7 @@ export default function BridgeForm() {
 
   const getAvailableBalance = () => {
     if (sourceChain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId) {
-      return ethereumSepoliaBalance;
+      return sepoliaBalance;
     } else if (sourceChain.chainId === BASE_SEPOLIA_CHAIN.chainId) {
       return baseSepoliaBalance;
     } else if (sourceChain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId) {

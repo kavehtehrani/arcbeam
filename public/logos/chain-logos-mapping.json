@@ -4,7 +4,7 @@
     "icon_id": "icon-blockchain/arc",
     "path": "/logos/arc-testnet.svg"
   },
-  "Ethereum Sepolia": {
+  "Sepolia": {
     "filename": "ethereum-sepolia.svg",
     "icon_id": "icon-eth",
     "path": "/logos/ethereum-sepolia.svg"
