@@ -8,6 +8,7 @@ import {
   ETHEREUM_SEPOLIA_CHAIN,
   BASE_SEPOLIA_CHAIN,
   ARBITRUM_SEPOLIA_CHAIN,
+  OP_SEPOLIA_CHAIN,
 } from "@/lib/chains";
 import { getChainLogoPath } from "@/lib/chainLogos";
 import Image from "next/image";
@@ -24,11 +25,13 @@ export default function BalanceViewer() {
     ethereumSepolia: ChainBalances;
     baseSepolia: ChainBalances;
     arbitrumSepolia: ChainBalances;
+    opSepolia: ChainBalances;
     arc: ChainBalances;
   }>({
     ethereumSepolia: { usdc: "0", eth: "0" },
     baseSepolia: { usdc: "0", eth: "0" },
     arbitrumSepolia: { usdc: "0", eth: "0" },
+    opSepolia: { usdc: "0", eth: "0" },
     arc: { usdc: "0", eth: "0" },
   });
   const [loading, setLoading] = useState(true);
@@ -53,6 +56,7 @@ export default function BalanceViewer() {
           ethereumSepolia: { usdc: "0", eth: "0" },
           baseSepolia: { usdc: "0", eth: "0" },
           arbitrumSepolia: { usdc: "0", eth: "0" },
+          opSepolia: { usdc: "0", eth: "0" },
           arc: { usdc: "0", eth: "0" },
         });
         setLoading(false);
@@ -87,6 +91,8 @@ export default function BalanceViewer() {
           baseSepoliaETH,
           arbitrumSepoliaUSDC,
           arbitrumSepoliaETH,
+          opSepoliaUSDC,
+          opSepoliaETH,
         ] = await Promise.all([
           getUSDCBalance(walletAddress, ARC_CHAIN, ARC_CHAIN.rpcUrl),
           getUSDCBalance(
@@ -119,6 +125,16 @@ export default function BalanceViewer() {
             ARBITRUM_SEPOLIA_CHAIN,
             ARBITRUM_SEPOLIA_CHAIN.rpcUrl
           ),
+          getUSDCBalance(
+            walletAddress,
+            OP_SEPOLIA_CHAIN,
+            OP_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getETHBalance(
+            walletAddress,
+            OP_SEPOLIA_CHAIN,
+            OP_SEPOLIA_CHAIN.rpcUrl
+          ),
         ]);
 
         setBalances({
@@ -138,6 +154,10 @@ export default function BalanceViewer() {
             usdc: arbitrumSepoliaUSDC,
             eth: arbitrumSepoliaETH,
           },
+          opSepolia: {
+            usdc: opSepoliaUSDC,
+            eth: opSepoliaETH,
+          },
         });
         hasFetchedRef.current = true;
         console.log("Balances fetched successfully:", {
@@ -153,6 +173,10 @@ export default function BalanceViewer() {
           arbitrumSepolia: {
             usdc: arbitrumSepoliaUSDC,
             eth: arbitrumSepoliaETH,
+          },
+          opSepolia: {
+            usdc: opSepoliaUSDC,
+            eth: opSepoliaETH,
           },
           walletAddress,
         });
@@ -193,6 +217,7 @@ export default function BalanceViewer() {
         ethereumSepolia: { usdc: "0", eth: "0" },
         baseSepolia: { usdc: "0", eth: "0" },
         arbitrumSepolia: { usdc: "0", eth: "0" },
+        opSepolia: { usdc: "0", eth: "0" },
         arc: { usdc: "0", eth: "0" },
       });
       setLoading(false);
@@ -290,6 +315,21 @@ export default function BalanceViewer() {
         {
           symbol: "ETH",
           balance: balances.arbitrumSepolia.eth,
+          decimals: 4,
+        },
+      ],
+    },
+    {
+      chain: "OP Sepolia",
+      tokens: [
+        {
+          symbol: "USDC",
+          balance: balances.opSepolia.usdc,
+          decimals: 2,
+        },
+        {
+          symbol: "ETH",
+          balance: balances.opSepolia.eth,
           decimals: 4,
         },
       ],

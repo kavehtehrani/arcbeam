@@ -12,12 +12,12 @@ import {
   createWalletClient,
   custom,
   http,
-  type Chain,
+  type Chain as ViemChain,
   type PublicClient,
   type WalletClient,
 } from "viem";
 import { arcTestnet } from "viem/chains";
-import { ChainConfig } from "./chains";
+import { type ChainConfig } from "./chains";
 
 // ERC20 ABI for balance and allowance queries
 const ERC20_ABI = [
@@ -77,7 +77,7 @@ async function createViemAdapter(
   if (needsArcConfig) {
     return createAdapterFromProvider({
       provider: eip1193Provider,
-      getPublicClient: ({ chain }: { chain: Chain }): PublicClient => {
+      getPublicClient: ({ chain }: { chain: ViemChain }): PublicClient => {
         // If viem asks for Arc Testnet, provide our custom chain definition
         if (chain.id === 5042002) {
           return createPublicClient({
@@ -89,21 +89,6 @@ async function createViemAdapter(
         return createPublicClient({
           chain,
           transport: http(),
-        });
-      },
-      getWalletClient: ({ chain }: { chain: Chain }): WalletClient => {
-        // If viem asks for Arc Testnet, provide our custom chain definition
-        // This is critical for chain switching - the wallet client needs to know about Arc Testnet
-        if (chain.id === 5042002) {
-          return createWalletClient({
-            chain: arcTestnet,
-            transport: custom(eip1193Provider),
-          });
-        }
-        // For other chains, use default viem behavior
-        return createWalletClient({
-          chain,
-          transport: custom(eip1193Provider),
         });
       },
     });

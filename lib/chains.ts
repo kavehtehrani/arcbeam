@@ -1,112 +1,112 @@
-import { defineChain } from "viem";
+/**
+ * Chain configurations - uses viem chains directly, adds only USDC address and Bridge Kit name
+ */
 
-// Chain configurations for supported networks
+import type { Chain } from "viem";
+import {
+  sepolia,
+  baseSepolia,
+  arbitrumSepolia,
+  optimismSepolia,
+  polygonAmoy,
+  lineaSepolia,
+  avalancheFuji,
+  unichainSepolia,
+  plumeTestnet,
+  seiTestnet,
+  monadTestnet,
+  arcTestnet,
+} from "viem/chains";
+import { getUsdcAddressByChainId } from "./circleUsdcAddresses";
+
+// Bridge Kit chain name mapping (Circle Bridge Kit identifiers)
+const BRIDGE_KIT_CHAIN_NAMES: Record<number, string> = {
+  11155111: "Ethereum_Sepolia",
+  84532: "Base_Sepolia",
+  421614: "Arbitrum_Sepolia",
+  11155420: "OP_Sepolia",
+  80002: "Polygon_PoS_Amoy",
+  59141: "Linea_Sepolia",
+  43113: "Avalanche_Fuji",
+  1301: "Unichain_Sepolia",
+  98867: "Plume_Testnet",
+  1328: "Sei_Testnet",
+  10143: "Monad_Testnet",
+  5042002: "Arc_Testnet",
+};
+
 export interface ChainConfig {
   chainId: number;
   name: string;
   rpcUrl: string;
   usdcAddress: string;
   blockExplorer?: string;
-  bridgeKitChainName?: string; // Circle Bridge Kit chain identifier
+  bridgeKitChainName?: string;
 }
 
-// Ethereum Sepolia Testnet configuration
-export const ETHEREUM_SEPOLIA_CHAIN: ChainConfig = {
-  chainId: 11155111,
-  name: "Ethereum Sepolia",
-  rpcUrl:
-    process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL ??
-    process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL_FALLBACK ??
-    "https://eth-sepolia.api.onfinality.io/public",
-  usdcAddress:
-    process.env.NEXT_PUBLIC_SEPOLIA_USDC_ADDRESS ??
-    "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-  blockExplorer: "https://sepolia.etherscan.io",
-  bridgeKitChainName: "Ethereum_Sepolia",
-};
+/**
+ * Create ChainConfig from viem Chain by adding USDC address and Bridge Kit name
+ */
+function createChainConfig(chain: Chain): ChainConfig {
+  const usdcAddress = getUsdcAddressByChainId(chain.id) || "";
+  const bridgeKitChainName = BRIDGE_KIT_CHAIN_NAMES[chain.id];
 
-// Base Sepolia Testnet configuration
-export const BASE_SEPOLIA_CHAIN: ChainConfig = {
-  chainId: 84532,
-  name: "Base Sepolia",
-  rpcUrl:
-    process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL ??
-    process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL_FALLBACK ??
-    "https://sepolia.base.org",
-  usdcAddress:
-    process.env.NEXT_PUBLIC_BASE_SEPOLIA_USDC_ADDRESS ??
-    "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-  blockExplorer: "https://sepolia.basescan.org",
-  bridgeKitChainName: "Base_Sepolia",
-};
+  return {
+    chainId: chain.id,
+    name: chain.name,
+    rpcUrl: chain.rpcUrls.default.http[0],
+    usdcAddress,
+    blockExplorer: chain.blockExplorers?.default?.url,
+    bridgeKitChainName,
+  };
+}
 
-// Arbitrum Sepolia Testnet configuration
-export const ARBITRUM_SEPOLIA_CHAIN: ChainConfig = {
-  chainId: 421614,
-  name: "Arbitrum Sepolia",
-  rpcUrl:
-    process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL ??
-    process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL_FALLBACK ??
-    "https://sepolia-rollup.arbitrum.io/rpc",
-  usdcAddress:
-    process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_USDC_ADDRESS ??
-    "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
-  blockExplorer: "https://sepolia.arbiscan.io",
-  bridgeKitChainName: "Arbitrum_Sepolia",
-};
+// Export ChainConfig objects built from viem chains
+export const ETHEREUM_SEPOLIA_CHAIN = createChainConfig(sepolia);
+export const BASE_SEPOLIA_CHAIN = createChainConfig(baseSepolia);
+export const ARBITRUM_SEPOLIA_CHAIN = createChainConfig(arbitrumSepolia);
+export const OP_SEPOLIA_CHAIN = createChainConfig(optimismSepolia);
+export const POLYGON_AMOY_CHAIN = createChainConfig(polygonAmoy);
+export const LINEA_SEPOLIA_CHAIN = createChainConfig(lineaSepolia);
+export const AVALANCHE_FUJI_CHAIN = createChainConfig(avalancheFuji);
+export const UNICHAIN_SEPOLIA_CHAIN = createChainConfig(unichainSepolia);
+export const PLUME_TESTNET_CHAIN = createChainConfig(plumeTestnet);
+export const SEI_TESTNET_CHAIN = createChainConfig(seiTestnet);
+export const MONAD_TESTNET_CHAIN = createChainConfig(monadTestnet);
+export const ARC_CHAIN = createChainConfig(arcTestnet);
 
-// Arc Testnet configuration
-// RPC URL: https://rpc.testnet.arc.network (from Arc docs)
-// Bridge Kit chain name follows pattern: ChainName_NetworkName
-export const ARC_CHAIN: ChainConfig = {
-  chainId: 5042002,
-  name: "Arc Testnet",
-  rpcUrl:
-    process.env.NEXT_PUBLIC_ARC_RPC_URL ??
-    process.env.NEXT_PUBLIC_ARC_RPC_URL_FALLBACK ??
-    "https://rpc.testnet.arc.network",
-  usdcAddress:
-    process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS ??
-    "0x3600000000000000000000000000000000000000",
-  blockExplorer: "https://testnet.arcscan.app",
-  bridgeKitChainName: "Arc_Testnet",
-};
-
-export const SUPPORTED_CHAINS = [
+// All supported chains
+export const SUPPORTED_CHAINS: ChainConfig[] = [
   ARC_CHAIN,
   ETHEREUM_SEPOLIA_CHAIN,
   BASE_SEPOLIA_CHAIN,
   ARBITRUM_SEPOLIA_CHAIN,
+  OP_SEPOLIA_CHAIN,
+  POLYGON_AMOY_CHAIN,
+  LINEA_SEPOLIA_CHAIN,
+  AVALANCHE_FUJI_CHAIN,
+  UNICHAIN_SEPOLIA_CHAIN,
+  PLUME_TESTNET_CHAIN,
+  SEI_TESTNET_CHAIN,
+  MONAD_TESTNET_CHAIN,
 ];
 
-export const getChainById = (chainId: number): ChainConfig | undefined => {
+export function getChainById(chainId: number): ChainConfig | undefined {
   return SUPPORTED_CHAINS.find((chain) => chain.chainId === chainId);
-};
+}
 
-// Viem chain definitions for Wagmi/Privy integration
-// Arc Testnet as a custom viem chain
-// Configuration from: https://docs.arc.network/arc/references/connect-to-arc
-export const arcTestnet = defineChain({
-  id: 5042002,
-  name: "Arc Testnet",
-  nativeCurrency: {
-    name: "USDC",
-    symbol: "USDC",
-    decimals: 18, // Arc uses USDC with 18 decimals as native gas token
-  },
-  rpcUrls: {
-    default: {
-      http: [
-        process.env.NEXT_PUBLIC_ARC_RPC_URL ??
-          "https://rpc.testnet.arc.network",
-      ],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: "Arcscan",
-      url: "https://testnet.arcscan.app",
-    },
-  },
-  testnet: true,
-});
+// Export viem chains for direct use when needed
+export {
+  sepolia,
+  baseSepolia,
+  arbitrumSepolia,
+  optimismSepolia,
+  polygonAmoy,
+  lineaSepolia,
+  avalancheFuji,
+  unichainSepolia,
+  plumeTestnet,
+  seiTestnet,
+  monadTestnet,
+  arcTestnet,
+};

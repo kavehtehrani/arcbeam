@@ -28,6 +28,7 @@ import {
   ETHEREUM_SEPOLIA_CHAIN,
   BASE_SEPOLIA_CHAIN,
   ARBITRUM_SEPOLIA_CHAIN,
+  OP_SEPOLIA_CHAIN,
   ChainConfig,
 } from "@/lib/chains";
 
@@ -56,6 +57,7 @@ export default function BridgeForm() {
   const [ethereumSepoliaBalance, setEthereumSepoliaBalance] = useState("0");
   const [baseSepoliaBalance, setBaseSepoliaBalance] = useState("0");
   const [arbitrumSepoliaBalance, setArbitrumSepoliaBalance] = useState("0");
+  const [opSepoliaBalance, setOpSepoliaBalance] = useState("0");
   const [arcBalance, setArcBalance] = useState("0");
   const [currentAllowance, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
@@ -167,28 +169,39 @@ export default function BridgeForm() {
     // Only fetch balances for Privy embedded wallet
     if (!wallet || wallet.walletClientType !== "privy") return;
     try {
-      const [ethSepoliaBal, baseSepoliaBal, arbitrumSepoliaBal, arcBal] =
-        await Promise.all([
-          getUSDCBalance(
-            wallet.address,
-            ETHEREUM_SEPOLIA_CHAIN,
-            ETHEREUM_SEPOLIA_CHAIN.rpcUrl
-          ),
-          getUSDCBalance(
-            wallet.address,
-            BASE_SEPOLIA_CHAIN,
-            BASE_SEPOLIA_CHAIN.rpcUrl
-          ),
-          getUSDCBalance(
-            wallet.address,
-            ARBITRUM_SEPOLIA_CHAIN,
-            ARBITRUM_SEPOLIA_CHAIN.rpcUrl
-          ),
-          getUSDCBalance(wallet.address, ARC_CHAIN, ARC_CHAIN.rpcUrl),
-        ]);
+      const [
+        ethSepoliaBal,
+        baseSepoliaBal,
+        arbitrumSepoliaBal,
+        opSepoliaBal,
+        arcBal,
+      ] = await Promise.all([
+        getUSDCBalance(
+          wallet.address,
+          ETHEREUM_SEPOLIA_CHAIN,
+          ETHEREUM_SEPOLIA_CHAIN.rpcUrl
+        ),
+        getUSDCBalance(
+          wallet.address,
+          BASE_SEPOLIA_CHAIN,
+          BASE_SEPOLIA_CHAIN.rpcUrl
+        ),
+        getUSDCBalance(
+          wallet.address,
+          ARBITRUM_SEPOLIA_CHAIN,
+          ARBITRUM_SEPOLIA_CHAIN.rpcUrl
+        ),
+        getUSDCBalance(
+          wallet.address,
+          OP_SEPOLIA_CHAIN,
+          OP_SEPOLIA_CHAIN.rpcUrl
+        ),
+        getUSDCBalance(wallet.address, ARC_CHAIN, ARC_CHAIN.rpcUrl),
+      ]);
       setEthereumSepoliaBalance(ethSepoliaBal);
       setBaseSepoliaBalance(baseSepoliaBal);
       setArbitrumSepoliaBalance(arbitrumSepoliaBal);
+      setOpSepoliaBalance(opSepoliaBal);
       setArcBalance(arcBal);
 
       if (spenderAddress && sourceChain) {
@@ -217,6 +230,8 @@ export default function BridgeForm() {
       return baseSepoliaBalance;
     } else if (sourceChain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId) {
       return arbitrumSepoliaBalance;
+    } else if (sourceChain.chainId === OP_SEPOLIA_CHAIN.chainId) {
+      return opSepoliaBalance;
     } else if (sourceChain.chainId === ARC_CHAIN.chainId) {
       return arcBalance;
     }
@@ -721,6 +736,8 @@ export default function BridgeForm() {
                       chain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId
                     ) {
                       setDestinationChain(ARC_CHAIN);
+                    } else if (chain.chainId === OP_SEPOLIA_CHAIN.chainId) {
+                      setDestinationChain(ARC_CHAIN);
                     } else {
                       setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
                     }
@@ -731,6 +748,7 @@ export default function BridgeForm() {
                   ETHEREUM_SEPOLIA_CHAIN,
                   BASE_SEPOLIA_CHAIN,
                   ARBITRUM_SEPOLIA_CHAIN,
+                  OP_SEPOLIA_CHAIN,
                 ]}
                 disabled={status === "bridging" || status === "approving"}
               />
@@ -766,6 +784,7 @@ export default function BridgeForm() {
                   ETHEREUM_SEPOLIA_CHAIN,
                   BASE_SEPOLIA_CHAIN,
                   ARBITRUM_SEPOLIA_CHAIN,
+                  OP_SEPOLIA_CHAIN,
                 ].filter((chain) => chain.chainId !== sourceChain.chainId)}
                 disabled={status === "bridging" || status === "approving"}
               />

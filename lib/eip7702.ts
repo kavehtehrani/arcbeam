@@ -4,7 +4,19 @@
  */
 
 import { createPublicClient, http, type PublicClient } from "viem";
-import { sepolia, baseSepolia, arbitrumSepolia } from "viem/chains";
+import {
+  sepolia,
+  baseSepolia,
+  arbitrumSepolia,
+  optimismSepolia,
+  polygonAmoy,
+  lineaSepolia,
+  avalancheFuji,
+  unichainSepolia,
+  plumeTestnet,
+  seiTestnet,
+  monadTestnet,
+} from "viem/chains";
 import { createSmartAccountClient } from "permissionless";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { to7702SimpleSmartAccount } from "permissionless/accounts";
@@ -18,8 +30,16 @@ import { ChainConfig } from "./chains";
 // - If Arc is destination: only approval/burn steps (on source) are sponsored
 const SIMPLE_ACCOUNT_ADDRESSES: Record<number, string> = {
   11155111: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Ethereum Sepolia
-  84532: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Base Sepolia (same address)
-  421614: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Arbitrum Sepolia (same address)
+  84532: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Base Sepolia
+  421614: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Arbitrum Sepolia
+  11155420: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // OP Sepolia
+  80002: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Polygon Amoy
+  59141: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Linea Sepolia
+  43113: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Avalanche Fuji
+  1301: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Unichain Sepolia
+  98867: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Plume Testnet
+  1328: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Sei Testnet
+  10143: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Monad Testnet
   // Arc Testnet (5042002) is not listed here but supports conditional sponsorship
 };
 
@@ -32,6 +52,22 @@ function getViemChain(chainConfig: ChainConfig): Chain {
       return baseSepolia;
     case 421614:
       return arbitrumSepolia;
+    case 11155420:
+      return optimismSepolia;
+    case 80002:
+      return polygonAmoy;
+    case 59141:
+      return lineaSepolia;
+    case 43113:
+      return avalancheFuji;
+    case 1301:
+      return unichainSepolia;
+    case 98867:
+      return plumeTestnet;
+    case 1328:
+      return seiTestnet;
+    case 10143:
+      return monadTestnet;
     default:
       // For unsupported chains, return sepolia as fallback
       return sepolia;
@@ -73,7 +109,9 @@ export function createPimlicoClientForChain(chainConfig: ChainConfig) {
 /**
  * Create a public client for a given chain
  */
-export function createPublicClientForChain(chainConfig: ChainConfig): PublicClient {
+export function createPublicClientForChain(
+  chainConfig: ChainConfig
+): PublicClient {
   const viemChain = getViemChain(chainConfig);
   return createPublicClient({
     chain: viemChain,
@@ -142,4 +180,3 @@ export async function createEIP7702SmartAccountClient(
 export function getSponsorshipPolicyId(): string | undefined {
   return process.env.NEXT_PUBLIC_SPONSORSHIP_POLICY_ID;
 }
-

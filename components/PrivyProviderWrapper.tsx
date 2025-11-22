@@ -11,7 +11,20 @@ import {
   useContext,
 } from "react";
 import { http } from "viem";
-import { sepolia, baseSepolia, arbitrumSepolia, arcTestnet } from "viem/chains";
+import {
+  sepolia,
+  baseSepolia,
+  arbitrumSepolia,
+  optimismSepolia,
+  polygonAmoy,
+  lineaSepolia,
+  avalancheFuji,
+  unichainSepolia,
+  plumeTestnet,
+  seiTestnet,
+  monadTestnet,
+  arcTestnet,
+} from "viem/chains";
 
 // Context to share confirmEachStep state across the app
 interface ConfirmEachStepContextType {
@@ -155,11 +168,32 @@ export default function PrivyProviderWrapper({
   }
 
   const wagmiConfig = createConfig({
-    chains: [sepolia, baseSepolia, arbitrumSepolia, arcTestnet],
+    chains: [
+      sepolia,
+      baseSepolia,
+      arbitrumSepolia,
+      optimismSepolia,
+      polygonAmoy,
+      lineaSepolia,
+      avalancheFuji,
+      unichainSepolia,
+      plumeTestnet,
+      seiTestnet,
+      monadTestnet,
+      arcTestnet,
+    ],
     transports: {
       [sepolia.id]: http(),
       [baseSepolia.id]: http(),
       [arbitrumSepolia.id]: http(),
+      [optimismSepolia.id]: http(),
+      [polygonAmoy.id]: http(),
+      [lineaSepolia.id]: http(),
+      [avalancheFuji.id]: http(),
+      [unichainSepolia.id]: http(),
+      [plumeTestnet.id]: http(),
+      [seiTestnet.id]: http(),
+      [monadTestnet.id]: http(),
       [arcTestnet.id]: http(),
     },
   });
@@ -188,7 +222,20 @@ export default function PrivyProviderWrapper({
           // Configure supported chains for Privy (required for custom chains like Arc Testnet)
           // This ensures Privy's embedded wallets recognize and can switch to these chains
           defaultChain: sepolia, // Default to Ethereum Sepolia
-          supportedChains: [sepolia, baseSepolia, arbitrumSepolia, arcTestnet],
+          supportedChains: [
+            sepolia,
+            baseSepolia,
+            arbitrumSepolia,
+            optimismSepolia,
+            polygonAmoy,
+            lineaSepolia,
+            avalancheFuji,
+            unichainSepolia,
+            plumeTestnet,
+            seiTestnet,
+            monadTestnet,
+            arcTestnet,
+          ],
         }}
       >
         <QueryClientProvider client={queryClient}>
