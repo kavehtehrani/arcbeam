@@ -66,7 +66,7 @@ export default function Home() {
             />
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-                arcbeam
+                ArcBeam
               </h1>
               <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
                 Bridge USDC between Arc and Sepolia with gasless transactions

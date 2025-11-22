@@ -185,58 +185,75 @@ export default function BalanceViewer() {
     return parseFloat(balance) > 0;
   };
 
-  // Create an array of balance items to display
-  const balanceItems = [
+  // Create network items grouped by chain
+  const networkItems = [
     {
       chain: "Arc Testnet",
-      token: "USDC",
-      balance: balances.arc.usdc,
       color: "bg-green-500",
-      decimals: 2,
+      tokens: [
+        {
+          symbol: "USDC",
+          balance: balances.arc.usdc,
+          decimals: 2,
+        },
+      ],
     },
     {
       chain: "Ethereum Sepolia",
-      token: "USDC",
-      balance: balances.ethereumSepolia.usdc,
       color: "bg-blue-500",
-      decimals: 2,
-    },
-    {
-      chain: "Ethereum Sepolia",
-      token: "ETH",
-      balance: balances.ethereumSepolia.eth,
-      color: "bg-blue-500",
-      decimals: 4,
+      tokens: [
+        {
+          symbol: "USDC",
+          balance: balances.ethereumSepolia.usdc,
+          decimals: 2,
+        },
+        {
+          symbol: "ETH",
+          balance: balances.ethereumSepolia.eth,
+          decimals: 4,
+        },
+      ],
     },
     {
       chain: "Base Sepolia",
-      token: "USDC",
-      balance: balances.baseSepolia.usdc,
       color: "bg-purple-500",
-      decimals: 2,
-    },
-    {
-      chain: "Base Sepolia",
-      token: "ETH",
-      balance: balances.baseSepolia.eth,
-      color: "bg-purple-500",
-      decimals: 4,
+      tokens: [
+        {
+          symbol: "USDC",
+          balance: balances.baseSepolia.usdc,
+          decimals: 2,
+        },
+        {
+          symbol: "ETH",
+          balance: balances.baseSepolia.eth,
+          decimals: 4,
+        },
+      ],
     },
     {
       chain: "Arbitrum Sepolia",
-      token: "USDC",
-      balance: balances.arbitrumSepolia.usdc,
       color: "bg-cyan-500",
-      decimals: 2,
+      tokens: [
+        {
+          symbol: "USDC",
+          balance: balances.arbitrumSepolia.usdc,
+          decimals: 2,
+        },
+        {
+          symbol: "ETH",
+          balance: balances.arbitrumSepolia.eth,
+          decimals: 4,
+        },
+      ],
     },
-    {
-      chain: "Arbitrum Sepolia",
-      token: "ETH",
-      balance: balances.arbitrumSepolia.eth,
-      color: "bg-cyan-500",
-      decimals: 4,
-    },
-  ].filter((item) => isBalanceGreaterThanZero(item.balance));
+  ]
+    .map((network) => ({
+      ...network,
+      tokens: network.tokens.filter((token) =>
+        isBalanceGreaterThanZero(token.balance)
+      ),
+    }))
+    .filter((network) => network.tokens.length > 0);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -277,37 +294,41 @@ export default function BalanceViewer() {
           )}
         </button>
       </div>
-      {balanceItems.length === 0 && !loading ? (
+      {networkItems.length === 0 && !loading ? (
         <p className="text-sm text-gray-500 dark:text-gray-400">
           No balances found. All balances are zero.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {balanceItems.map((item, index) => (
+          {networkItems.map((network, index) => (
             <div
-              key={`${item.chain}-${item.token}-${index}`}
+              key={`${network.chain}-${index}`}
               className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50"
             >
               <div className="mb-3 flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${item.color}`}></div>
+                <div className={`h-2 w-2 rounded-full ${network.color}`}></div>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {item.chain}
+                  {network.chain}
                 </p>
               </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {item.token}
-                </p>
-                {loading ? (
-                  <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-                ) : (
-                  <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                    {parseFloat(item.balance).toLocaleString(undefined, {
-                      minimumFractionDigits: item.decimals,
-                      maximumFractionDigits: item.decimals,
-                    })}
-                  </p>
-                )}
+              <div className="space-y-3">
+                {network.tokens.map((token) => (
+                  <div key={token.symbol}>
+                    <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {token.symbol}
+                    </p>
+                    {loading ? (
+                      <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
+                    ) : (
+                      <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                        {parseFloat(token.balance).toLocaleString(undefined, {
+                          minimumFractionDigits: token.decimals,
+                          maximumFractionDigits: token.decimals,
+                        })}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
