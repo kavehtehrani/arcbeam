@@ -53,7 +53,13 @@ export default function Home() {
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <main className="container mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-6 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+        <div className="relative mb-6 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+          {/* Theme Switcher - Absolute top right on mobile, inline on larger screens */}
+          {mounted && (
+            <div className="absolute top-0 right-0 z-50 sm:hidden">
+              <ThemeSwitcher />
+            </div>
+          )}
           <div className="flex flex-shrink-0 items-center gap-4">
             <Image
               src="/logo.png"
@@ -73,10 +79,9 @@ export default function Home() {
             </div>
           </div>
           <div className="w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:w-auto sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
-            <div className="flex items-center justify-end gap-3">
-              {mounted && <ThemeSwitcher />}
+            <div className="flex w-full items-center justify-between gap-3 sm:justify-end">
               {ready && authenticated && (
-                <div className="text-right">
+                <div className="flex-1 text-right sm:flex-none">
                   <p className="text-sm font-medium text-green-600 dark:text-green-400">
                     Wallet Connected
                   </p>
@@ -122,22 +127,29 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {ready && authenticated ? (
-                <button
-                  onClick={handleDisconnect}
-                  className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                >
-                  Disconnect
-                </button>
-              ) : (
-                <button
-                  onClick={handleConnect}
-                  disabled={!ready}
-                  className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
-                >
-                  Connect Wallet
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {ready && authenticated ? (
+                  <button
+                    onClick={handleDisconnect}
+                    className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleConnect}
+                    disabled={!ready}
+                    className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                  >
+                    Connect Wallet
+                  </button>
+                )}
+                {mounted && (
+                  <div className="hidden sm:block">
+                    <ThemeSwitcher />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

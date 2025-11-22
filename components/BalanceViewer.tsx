@@ -291,139 +291,158 @@ export default function BalanceViewer() {
     .filter((network) => network.tokens.length > 0);
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Balances
-        </h2>
-        <button
-          onClick={handleRefresh}
-          disabled={loading}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg
-                className="h-4 w-4 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
+    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 dark:from-blue-600 dark:to-blue-700">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">Balances</h2>
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Loading
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              Loading
-            </span>
-          ) : (
-            "Refresh"
-          )}
-        </button>
-      </div>
-      {networkItems.length === 0 && !loading ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          No balances found. All balances are zero.
-        </p>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-          {networkItems.map((network, index) => (
-            <div
-              key={`${network.chain}-${index}`}
-              className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50"
-            >
-              <div className="mb-3 flex items-center gap-2">
-                {network.logoPath ? (
-                  <Image
-                    src={network.logoPath}
-                    alt={network.chain}
-                    width={20}
-                    height={20}
-                    className="rounded-full"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                   />
-                ) : (
-                  <div className="h-5 w-5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
-                )}
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {network.chain}
-                </p>
-              </div>
-              <div className="space-y-3">
-                {network.tokens.map((token) => (
-                  <div key={token.symbol}>
-                    <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                      {token.symbol}
-                    </p>
-                    {loading ? (
-                      <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-                    ) : (
-                      <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                        {(() => {
-                          // Parse the balance string directly to avoid precision issues
-                          const balanceStr = String(token.balance).trim();
-
-                          // Debug logging for Arc Testnet USDC
-                          if (
-                            token.symbol === "USDC" &&
-                            network.chain === "Arc Testnet"
-                          ) {
-                            console.log("Arc USDC Balance Debug:", {
-                              rawBalance: token.balance,
-                              balanceStr,
-                              balanceType: typeof token.balance,
-                            });
-                          }
-
-                          if (
-                            !balanceStr ||
-                            balanceStr === "0" ||
-                            balanceStr === ""
-                          ) {
-                            return "0.00";
-                          }
-                          const balanceNum = parseFloat(balanceStr);
-                          if (isNaN(balanceNum)) {
-                            console.warn(
-                              `Invalid balance for ${token.symbol}:`,
-                              token.balance,
-                              "raw string:",
-                              balanceStr
-                            );
-                            return "0.00";
-                          }
-                          // Format with fixed decimal places
-                          const formatted = balanceNum.toFixed(token.decimals);
-
-                          // Debug logging for Arc Testnet USDC
-                          if (
-                            token.symbol === "USDC" &&
-                            network.chain === "Arc Testnet"
-                          ) {
-                            console.log("Arc USDC Balance Formatted:", {
-                              balanceNum,
-                              formatted,
-                            });
-                          }
-
-                          return formatted;
-                        })()}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                </svg>
+                Refresh
+              </span>
+            )}
+          </button>
         </div>
-      )}
+      </div>
+      <div className="p-6">
+        {networkItems.length === 0 && !loading ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            No balances found. All balances are zero.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {networkItems.map((network, index) => (
+              <div
+                key={`${network.chain}-${index}`}
+                className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50"
+              >
+                <div className="mb-3 flex items-center gap-2">
+                  {network.logoPath ? (
+                    <Image
+                      src={network.logoPath}
+                      alt={network.chain}
+                      width={20}
+                      height={20}
+                      className="rounded-full"
+                    />
+                  ) : (
+                    <div className="h-5 w-5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                  )}
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {network.chain}
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {network.tokens.map((token) => (
+                    <div key={token.symbol}>
+                      <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        {token.symbol}
+                      </p>
+                      {loading ? (
+                        <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
+                      ) : (
+                        <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                          {(() => {
+                            // Parse the balance string directly to avoid precision issues
+                            const balanceStr = String(token.balance).trim();
+
+                            // Debug logging for Arc Testnet USDC
+                            if (
+                              token.symbol === "USDC" &&
+                              network.chain === "Arc Testnet"
+                            ) {
+                              console.log("Arc USDC Balance Debug:", {
+                                rawBalance: token.balance,
+                                balanceStr,
+                                balanceType: typeof token.balance,
+                              });
+                            }
+
+                            if (
+                              !balanceStr ||
+                              balanceStr === "0" ||
+                              balanceStr === ""
+                            ) {
+                              return "0.00";
+                            }
+                            const balanceNum = parseFloat(balanceStr);
+                            if (isNaN(balanceNum)) {
+                              console.warn(
+                                `Invalid balance for ${token.symbol}:`,
+                                token.balance,
+                                "raw string:",
+                                balanceStr
+                              );
+                              return "0.00";
+                            }
+                            // Format with fixed decimal places
+                            const formatted = balanceNum.toFixed(
+                              token.decimals
+                            );
+
+                            // Debug logging for Arc Testnet USDC
+                            if (
+                              token.symbol === "USDC" &&
+                              network.chain === "Arc Testnet"
+                            ) {
+                              console.log("Arc USDC Balance Formatted:", {
+                                balanceNum,
+                                formatted,
+                              });
+                            }
+
+                            return formatted;
+                          })()}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
