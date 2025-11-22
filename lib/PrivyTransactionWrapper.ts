@@ -147,11 +147,7 @@ export function createPrivyTransactionWrapper(
           (tx.data.startsWith("0x8d7f3f70") || tx.data.length > 200)
         ) {
           // Bridge mint: receiveMessage
-          updateBridgeProgress(
-            "burn",
-            "completed",
-            "Step 2/3: Burn completed"
-          );
+          updateBridgeProgress("burn", "completed", "Step 2/3: Burn completed");
           updateBridgeProgress(
             "mint",
             "processing",

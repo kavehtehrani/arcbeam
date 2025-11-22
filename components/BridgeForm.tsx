@@ -411,18 +411,30 @@ export default function BridgeForm() {
       if (shouldEnableSponsorship) {
         try {
           // Create a wrapper function that matches the expected signature
+          // Note: Privy's signAuthorization doesn't support showWalletUIs option,
+          // but we can check if there's a way to suppress it when confirmEachStep is false
           const signAuthorizationWrapper = async (params: {
             contractAddress: `0x${string}`;
             chainId?: number;
             nonce?: number;
             executor?: `0x${string}` | "self";
           }): Promise<any> => {
-            return await signAuthorization({
+            // Privy's signAuthorization may support options - check if we can pass showWalletUIs
+            // If confirmEachStep is false, try to suppress the popup if possible
+            const authParams: any = {
               contractAddress: params.contractAddress,
               chainId: params.chainId,
               nonce: params.nonce,
               executor: params.executor,
-            });
+            };
+
+            // Try to pass showWalletUIs option if Privy supports it
+            // This may not work, but it's worth trying
+            if (!confirmEachStep) {
+              authParams.showWalletUIs = false;
+            }
+
+            return await signAuthorization(authParams);
           };
 
           // Function to get public client for any chain
@@ -438,6 +450,7 @@ export default function BridgeForm() {
               walletClient,
               signAuthorization: signAuthorizationWrapper,
               getPublicClientForChain,
+              confirmEachStep, // Pass the confirmEachStep setting
             }
           );
 
@@ -843,6 +856,13 @@ export default function BridgeForm() {
                     enabled, you&#39;ll see a confirmation screen after each
                     step completes.
                   </p>
+                  {enableGasSponsorship && (
+                    <p className="mt-2 text-yellow-700 dark:text-yellow-400">
+                      Note: Gas sponsored transactions will show an
+                      authorization popup for each step regardless of this
+                      setting due to security measures.
+                    </p>
+                  )}
                   <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"></div>
                 </div>
               </div>

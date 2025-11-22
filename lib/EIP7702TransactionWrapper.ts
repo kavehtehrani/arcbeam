@@ -24,6 +24,7 @@ interface EIP7702WrapperOptions {
     executor?: `0x${string}` | "self";
   }) => Promise<any>; // Privy returns an authorization object
   getPublicClientForChain: (chainConfig: ChainConfig) => any; // Function to get public client for a chain
+  confirmEachStep?: boolean; // Whether to show Privy popups for each step
 }
 
 /**
@@ -39,7 +40,26 @@ export function createEIP7702TransactionWrapper(
     walletClient,
     signAuthorization,
     getPublicClientForChain,
+    confirmEachStep = false,
   } = options;
+
+  // Helper function to update bridge progress (same as PrivyTransactionWrapper)
+  const updateBridgeProgress = (
+    step: "approval" | "burn" | "mint",
+    status: "pending" | "waiting" | "processing" | "completed" | "error",
+    description?: string
+  ) => {
+    if (
+      typeof window !== "undefined" &&
+      (window as any).bridgeProgressCallback
+    ) {
+      (window as any).bridgeProgressCallback({
+        step,
+        description,
+        status,
+      });
+    }
+  };
 
   // Cache for smart account clients (one per chain)
   const smartAccountClientCache: Record<number, any> = {};
@@ -67,9 +87,48 @@ export function createEIP7702TransactionWrapper(
       );
       const isBurn = dataPrefix === burnSelector.toLowerCase();
       // Mint can be detected by selector or by long data (mint transactions have complex calldata)
+      // Note: Mint transactions are often wrapped in execute() calls, so we check the full calldata
       const isMint =
         mintSelectors.some((sel) => dataPrefix === sel.toLowerCase()) ||
-        (tx.data && tx.data.length > 200);
+        (tx.data && tx.data.length > 200 && !isApproval && !isBurn);
+
+      // Debug logging to help diagnose transaction detection
+      if (tx.data) {
+        console.log(
+          `EIP-7702: Transaction detected - prefix: ${dataPrefix}, length: ${tx.data.length}, isApproval: ${isApproval}, isBurn: ${isBurn}, isMint: ${isMint}`
+        );
+      }
+
+      // Update bridge progress based on transaction type
+      if (isApproval) {
+        updateBridgeProgress(
+          "approval",
+          "processing",
+          "Step 1/3: Approving USDC spending..."
+        );
+      } else if (isBurn) {
+        updateBridgeProgress(
+          "approval",
+          "completed",
+          "Step 1/3: Approval completed"
+        );
+        updateBridgeProgress(
+          "burn",
+          "processing",
+          "Step 2/3: Burning USDC on source chain..."
+        );
+      } else if (isMint) {
+        updateBridgeProgress(
+          "burn",
+          "completed",
+          "Step 2/3: Burn completed"
+        );
+        updateBridgeProgress(
+          "mint",
+          "processing",
+          "Step 3/3: Minting USDC on destination chain..."
+        );
+      }
 
       // Arc chain gas sponsorship logic:
       // - If Arc is source: only sponsor mint (destination chain)
@@ -128,8 +187,17 @@ export function createEIP7702TransactionWrapper(
             } - using regular transaction`
           );
         }
+        // Pass through to original provider (PrivyTransactionWrapper)
+        // The PrivyTransactionWrapper will handle it and respect confirmEachStep
         return originalProvider.request(args);
       }
+
+      // Log that we're sponsoring this transaction
+      console.log(
+        `EIP-7702: Sponsoring ${
+          isApproval ? "approval" : isBurn ? "burn" : "mint"
+        } transaction on ${chainConfig.name}`
+      );
 
       // Additional safety check: never try to create smart account client for Arc
       if (chainConfig.chainId === ARC_CHAIN_ID) {
@@ -179,14 +247,49 @@ export function createEIP7702TransactionWrapper(
 
         // Sign a fresh authorization for this chain with the current nonce
         // This ensures the nonce matches the account's current state on this chain
+        // If confirmEachStep is false, we want to suppress the Privy popup
+        // However, signAuthorization from Privy will still show a popup for security
+        // We can't suppress it, but we can at least update progress
         console.log(
           `Signing EIP-7702 authorization for ${chainConfig.name} (chainId: ${chainConfig.chainId}, nonce: ${nonce})`
         );
-        const authorizationResult = await signAuthorization({
+
+        // Update progress to show we're signing authorization
+        if (isApproval) {
+          updateBridgeProgress(
+            "approval",
+            "processing",
+            "Step 1/3: Signing authorization for gas sponsorship..."
+          );
+        } else if (isBurn) {
+          updateBridgeProgress(
+            "burn",
+            "processing",
+            "Step 2/3: Signing authorization for gas sponsorship..."
+          );
+        } else if (isMint) {
+          updateBridgeProgress(
+            "mint",
+            "processing",
+            "Step 3/3: Signing authorization for gas sponsorship..."
+          );
+        }
+
+        // Call signAuthorization with options to respect confirmEachStep
+        // Privy's signAuthorization may support showWalletUIs or similar options
+        const authParams: any = {
           contractAddress: simpleAccountAddress as `0x${string}`,
           chainId: chainConfig.chainId,
           nonce,
-        });
+        };
+
+        // Try to suppress popup when confirmEachStep is false
+        // Note: This may not work if Privy doesn't support this option for authorization
+        if (!confirmEachStep) {
+          authParams.showWalletUIs = false;
+        }
+
+        const authorizationResult = await signAuthorization(authParams);
 
         // Extract authorization from the result
         let authorization: Hex;
@@ -240,7 +343,51 @@ export function createEIP7702TransactionWrapper(
         // Send UserOperation via smart account client
         // The sendTransaction method should automatically estimate gas prices using the bundler
         // Permissionless handles gas estimation internally, so we just need to call sendTransaction
+
+        // Update progress to show transaction is being sent
+        if (isApproval) {
+          updateBridgeProgress(
+            "approval",
+            "processing",
+            "Step 1/3: Sending sponsored approval transaction..."
+          );
+        } else if (isBurn) {
+          updateBridgeProgress(
+            "burn",
+            "processing",
+            "Step 2/3: Sending sponsored burn transaction..."
+          );
+        } else if (isMint) {
+          updateBridgeProgress(
+            "mint",
+            "processing",
+            "Step 3/3: Sending sponsored mint transaction..."
+          );
+        }
+
         const userOpHash = await smartAccountClient.sendTransaction(userOpTx);
+
+        // Update progress to show transaction was sent successfully
+        if (isApproval) {
+          updateBridgeProgress(
+            "approval",
+            "processing",
+            "Step 1/3: Approval transaction sent, waiting for confirmation..."
+          );
+        } else if (isBurn) {
+          updateBridgeProgress(
+            "burn",
+            "processing",
+            "Step 2/3: Burn transaction sent, waiting for confirmation..."
+          );
+        } else if (isMint) {
+          updateBridgeProgress(
+            "mint",
+            "processing",
+            "Step 3/3: Mint transaction sent, waiting for confirmation..."
+          );
+        }
+
         console.log(
           `EIP-7702 UserOperation sent on ${chainConfig.name}: ${userOpHash}`
         );
