@@ -126,7 +126,7 @@ export function createPrivyTransactionWrapper(
           updateBridgeProgress(
             "approval",
             "completed",
-            "Step 1/3: Approval completed ✅"
+            "Step 1/3: Approval completed"
           );
           updateBridgeProgress(
             "burn",
@@ -150,7 +150,7 @@ export function createPrivyTransactionWrapper(
           updateBridgeProgress(
             "burn",
             "completed",
-            "Step 2/3: Burn completed ✅"
+            "Step 2/3: Burn completed"
           );
           updateBridgeProgress(
             "mint",

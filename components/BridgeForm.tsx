@@ -518,7 +518,7 @@ export default function BridgeForm() {
                     step.state === "success"
                       ? `${
                           updated[stepIndex].description.split(" - ")[0]
-                        } - ✅ Completed`
+                        } - Completed`
                       : step.state === "error"
                       ? `${
                           updated[stepIndex].description.split(" - ")[0]
@@ -840,8 +840,8 @@ export default function BridgeForm() {
                 <div className="pointer-events-none invisible absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-700 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                   <p>
                     Show completion screens for each transaction step. When
-                    enabled, you&#39;ll see a confirmation screen after each step
-                    completes.
+                    enabled, you&#39;ll see a confirmation screen after each
+                    step completes.
                   </p>
                   <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"></div>
                 </div>

@@ -71,6 +71,13 @@ export function createEIP7702TransactionWrapper(
         mintSelectors.some((sel) => dataPrefix === sel.toLowerCase()) ||
         (tx.data && tx.data.length > 200);
 
+      // Arc chain gas sponsorship logic:
+      // - If Arc is source: only sponsor mint (destination chain)
+      // - If Arc is destination: only sponsor approval and burn (source chain)
+      const ARC_CHAIN_ID = 5042002;
+      const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
+      const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
+
       // Determine which chain this transaction is for
       let chainConfig: ChainConfig | null = null;
       if (isApproval || isBurn) {
@@ -85,20 +92,15 @@ export function createEIP7702TransactionWrapper(
         return originalProvider.request(args);
       }
 
-      // Arc chain gas sponsorship logic:
-      // - If Arc is source: only sponsor mint (destination chain)
-      // - If Arc is destination: only sponsor approval and burn (source chain)
-      const ARC_CHAIN_ID = 5042002;
-      const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
-      const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
-
       // Determine if this transaction should be sponsored based on Arc rules
       let shouldSponsor = false;
       if (isArcSource) {
         // Arc is source: only sponsor mint (destination chain)
+        // Approval and burn on Arc should NOT be sponsored
         shouldSponsor = isMint && isEIP7702Supported(destinationChain.chainId);
       } else if (isArcDestination) {
         // Arc is destination: only sponsor approval and burn (source chain)
+        // Mint on Arc should NOT be sponsored
         shouldSponsor =
           (isApproval || isBurn) && isEIP7702Supported(sourceChain.chainId);
       } else {
@@ -106,17 +108,18 @@ export function createEIP7702TransactionWrapper(
         shouldSponsor = chainConfig && isEIP7702Supported(chainConfig.chainId);
       }
 
-      // If sponsorship shouldn't be applied, pass through
+      // If sponsorship shouldn't be applied, pass through immediately
+      // This is critical for Arc - we must NOT try to create smart account clients for Arc
       if (!shouldSponsor) {
         if (isArcSource && (isApproval || isBurn)) {
           console.log(
             `Arc is source: skipping gas sponsorship for ${
               isApproval ? "approval" : "burn"
-            } on source chain`
+            } on ${chainConfig.name} - using regular transaction`
           );
         } else if (isArcDestination && isMint) {
           console.log(
-            `Arc is destination: skipping gas sponsorship for mint on destination chain`
+            `Arc is destination: skipping gas sponsorship for mint on ${chainConfig.name} - using regular transaction`
           );
         } else if (!chainConfig || !isEIP7702Supported(chainConfig.chainId)) {
           console.log(
@@ -128,7 +131,23 @@ export function createEIP7702TransactionWrapper(
         return originalProvider.request(args);
       }
 
+      // Additional safety check: never try to create smart account client for Arc
+      if (chainConfig.chainId === ARC_CHAIN_ID) {
+        console.warn(
+          `Attempted to create EIP-7702 client for Arc Testnet - this should not happen. Passing through.`
+        );
+        return originalProvider.request(args);
+      }
+
       try {
+        // Final safety check: ensure chain supports EIP-7702 before proceeding
+        if (!isEIP7702Supported(chainConfig.chainId)) {
+          console.warn(
+            `Chain ${chainConfig.name} does not support EIP-7702 - passing through to regular transaction`
+          );
+          return originalProvider.request(args);
+        }
+
         // Get or create smart account client for this chain
         if (!smartAccountClientCache[chainConfig.chainId]) {
           const publicClient = getPublicClientForChain(chainConfig);

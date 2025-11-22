@@ -72,7 +72,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex w-full items-stretch gap-3 rounded-lg border border-gray-200 bg-white p-0 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:w-auto sm:border-0 sm:bg-transparent sm:shadow-none">
+          <div className="flex w-full items-stretch gap-3 rounded-lg border border-gray-200 bg-white p-0 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:w-auto sm:border-0 sm:bg-transparent sm:shadow-none sm:dark:bg-transparent lg:bg-transparent lg:dark:bg-transparent">
             <div className="flex-1 p-4 sm:flex-none sm:p-0">
               <div className="flex w-full items-center justify-between gap-3 sm:justify-end">
                 {ready && authenticated && (
