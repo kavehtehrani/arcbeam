@@ -46,6 +46,11 @@ export interface BridgeResult {
 
 /**
  * Create Viem adapter from EIP-1193 provider for Circle Bridge Kit
+ *
+ * Note: The Circle Bridge Kit adapter uses viem internally and may not recognize
+ * custom chains like Arc Testnet. If you encounter "Unsupported chainId" errors,
+ * it may indicate that Circle Bridge Kit doesn't yet support Arc Testnet, or
+ * the chain identifier needs to be verified with Circle's documentation.
  */
 async function createViemAdapter(
   eip1193Provider: any

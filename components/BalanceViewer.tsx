@@ -58,7 +58,6 @@ export default function BalanceViewer() {
       try {
         const [
           arcUSDC,
-          arcETH,
           ethereumSepoliaUSDC,
           ethereumSepoliaETH,
           baseSepoliaUSDC,
@@ -67,7 +66,6 @@ export default function BalanceViewer() {
           arbitrumSepoliaETH,
         ] = await Promise.all([
           getUSDCBalance(walletAddress, ARC_CHAIN, ARC_CHAIN.rpcUrl),
-          getETHBalance(walletAddress, ARC_CHAIN, ARC_CHAIN.rpcUrl),
           getUSDCBalance(
             walletAddress,
             ETHEREUM_SEPOLIA_CHAIN,
@@ -103,7 +101,7 @@ export default function BalanceViewer() {
         setBalances({
           arc: {
             usdc: arcUSDC,
-            eth: arcETH,
+            eth: "0",
           },
           ethereumSepolia: {
             usdc: ethereumSepoliaUSDC,
@@ -182,6 +180,64 @@ export default function BalanceViewer() {
     );
   }
 
+  // Helper function to check if balance is greater than zero
+  const isBalanceGreaterThanZero = (balance: string): boolean => {
+    return parseFloat(balance) > 0;
+  };
+
+  // Create an array of balance items to display
+  const balanceItems = [
+    {
+      chain: "Arc Testnet",
+      token: "USDC",
+      balance: balances.arc.usdc,
+      color: "bg-green-500",
+      decimals: 2,
+    },
+    {
+      chain: "Ethereum Sepolia",
+      token: "USDC",
+      balance: balances.ethereumSepolia.usdc,
+      color: "bg-blue-500",
+      decimals: 2,
+    },
+    {
+      chain: "Ethereum Sepolia",
+      token: "ETH",
+      balance: balances.ethereumSepolia.eth,
+      color: "bg-blue-500",
+      decimals: 4,
+    },
+    {
+      chain: "Base Sepolia",
+      token: "USDC",
+      balance: balances.baseSepolia.usdc,
+      color: "bg-purple-500",
+      decimals: 2,
+    },
+    {
+      chain: "Base Sepolia",
+      token: "ETH",
+      balance: balances.baseSepolia.eth,
+      color: "bg-purple-500",
+      decimals: 4,
+    },
+    {
+      chain: "Arbitrum Sepolia",
+      token: "USDC",
+      balance: balances.arbitrumSepolia.usdc,
+      color: "bg-cyan-500",
+      decimals: 2,
+    },
+    {
+      chain: "Arbitrum Sepolia",
+      token: "ETH",
+      balance: balances.arbitrumSepolia.eth,
+      color: "bg-cyan-500",
+      decimals: 4,
+    },
+  ].filter((item) => isBalanceGreaterThanZero(item.balance));
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
       <div className="mb-6 flex items-center justify-between">
@@ -221,186 +277,42 @@ export default function BalanceViewer() {
           )}
         </button>
       </div>
-      <div className="space-y-4">
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              Arc Testnet
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                USDC
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {parseFloat(balances.arc.usdc).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+      {balanceItems.length === 0 && !loading ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          No balances found. All balances are zero.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {balanceItems.map((item, index) => (
+            <div
+              key={`${item.chain}-${item.token}-${index}`}
+              className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50"
+            >
+              <div className="mb-3 flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${item.color}`}></div>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {item.chain}
                 </p>
-              )}
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                ETH
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {parseFloat(balances.arc.eth).toLocaleString(undefined, {
-                    minimumFractionDigits: 4,
-                    maximumFractionDigits: 4,
-                  })}
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                  {item.token}
                 </p>
-              )}
+                {loading ? (
+                  <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
+                ) : (
+                  <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {parseFloat(item.balance).toLocaleString(undefined, {
+                      minimumFractionDigits: item.decimals,
+                      maximumFractionDigits: item.decimals,
+                    })}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              Ethereum Sepolia
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                USDC
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {parseFloat(balances.ethereumSepolia.usdc).toLocaleString(
-                    undefined,
-                    {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }
-                  )}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                ETH
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {parseFloat(balances.ethereumSepolia.eth).toLocaleString(
-                    undefined,
-                    {
-                      minimumFractionDigits: 4,
-                      maximumFractionDigits: 4,
-                    }
-                  )}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-purple-500"></div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              Base Sepolia
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                USDC
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {parseFloat(balances.baseSepolia.usdc).toLocaleString(
-                    undefined,
-                    {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }
-                  )}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                ETH
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {parseFloat(balances.baseSepolia.eth).toLocaleString(
-                    undefined,
-                    {
-                      minimumFractionDigits: 4,
-                      maximumFractionDigits: 4,
-                    }
-                  )}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-cyan-500"></div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              Arbitrum Sepolia
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                USDC
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {parseFloat(balances.arbitrumSepolia.usdc).toLocaleString(
-                    undefined,
-                    {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }
-                  )}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                ETH
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {parseFloat(balances.arbitrumSepolia.eth).toLocaleString(
-                    undefined,
-                    {
-                      minimumFractionDigits: 4,
-                      maximumFractionDigits: 4,
-                    }
-                  )}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

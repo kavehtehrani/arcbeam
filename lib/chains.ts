@@ -69,7 +69,7 @@ export const ARC_CHAIN: ChainConfig = {
     process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS ??
     "0x3600000000000000000000000000000000000000",
   blockExplorer: "https://testnet.arcscan.app",
-  bridgeKitChainName: "Arc_Testnet", // Circle Bridge Kit chain identifier (verify with Circle docs)
+  bridgeKitChainName: "Arc_Testnet", // Circle Bridge Kit chain identifier - follows pattern: ChainName_NetworkName
 };
 
 export const SUPPORTED_CHAINS = [
@@ -85,13 +85,14 @@ export const getChainById = (chainId: number): ChainConfig | undefined => {
 
 // Viem chain definitions for Wagmi/Privy integration
 // Arc Testnet as a custom viem chain
+// Configuration from: https://docs.arc.network/arc/references/connect-to-arc
 export const arcTestnet = defineChain({
   id: 5042002,
   name: "Arc Testnet",
   nativeCurrency: {
     name: "USDC",
     symbol: "USDC",
-    decimals: 6,
+    decimals: 18, // Arc uses USDC with 18 decimals as native gas token
   },
   rpcUrls: {
     default: {

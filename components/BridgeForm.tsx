@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePrivy, useWallets, useSendTransaction } from "@privy-io/react-auth";
 import { useSetActiveWallet } from "@privy-io/wagmi";
+import { useSwitchChain } from "wagmi";
 import { BrowserProvider } from "ethers";
 import {
   bridgeUSDC,
@@ -27,6 +28,7 @@ export default function BridgeForm() {
   const { wallets } = useWallets();
   const { sendTransaction: privySendTransaction } = useSendTransaction();
   const { setActiveWallet } = useSetActiveWallet();
+  const { switchChain } = useSwitchChain();
   const defaultAmount = process.env.NEXT_PUBLIC_DEV_DEFAULT_AMOUNT || "";
   const [amount, setAmount] = useState(defaultAmount);
   const [sourceChain, setSourceChain] = useState<ChainConfig>(ARC_CHAIN);
@@ -257,65 +259,22 @@ export default function BridgeForm() {
         );
       }
 
+      // Switch to source chain if it's Arc Testnet (to ensure wagmi/viem recognizes it)
+      if (sourceChain.chainId === 5042002) {
+        try {
+          console.log("Switching to Arc Testnet before bridge...");
+          await switchChain({ chainId: 5042002 });
+          // Give it a moment to complete the switch
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          console.warn("Could not switch to Arc Testnet via wagmi:", error);
+          // Continue anyway - the adapter might still work
+        }
+      }
+
       const ethereumProvider = await wallet.getEthereumProvider();
       if (!ethereumProvider) {
         throw new Error("Failed to get Ethereum provider from wallet");
-      }
-
-      // Add and switch to Arc Testnet chain if it's the source chain
-      if (sourceChain.chainId === 5042002 && ethereumProvider.request) {
-        try {
-          // First, try to add the chain to the wallet/provider
-          await ethereumProvider.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: "0x4CFA0A", // 5042002 in hex
-                chainName: "Arc Testnet",
-                nativeCurrency: {
-                  name: "USDC",
-                  symbol: "USDC",
-                  decimals: 6,
-                },
-                rpcUrls: [sourceChain.rpcUrl],
-                blockExplorerUrls: [sourceChain.blockExplorer],
-              },
-            ],
-          });
-        } catch (error) {
-          // Chain might already be added, continue
-          console.log("Chain add attempt (may already exist):", error);
-        }
-
-        try {
-          // Then switch to the Arc chain
-          await ethereumProvider.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0x4CFA0A" }], // 5042002 in hex
-          });
-        } catch (switchError: any) {
-          // If the chain is not added, add it first
-          if (switchError.code === 4902) {
-            await ethereumProvider.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
-                  chainId: "0x4CFA0A",
-                  chainName: "Arc Testnet",
-                  nativeCurrency: {
-                    name: "USDC",
-                    symbol: "USDC",
-                    decimals: 6,
-                  },
-                  rpcUrls: [sourceChain.rpcUrl],
-                  blockExplorerUrls: [sourceChain.blockExplorer],
-                },
-              ],
-            });
-          } else {
-            throw switchError;
-          }
-        }
       }
 
       const finalEip1193Provider = createPrivyTransactionWrapper(
