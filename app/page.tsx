@@ -72,8 +72,8 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex w-full gap-3 sm:w-auto">
-            <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:flex-none sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+          <div className="flex w-full items-stretch gap-3 rounded-lg border border-gray-200 bg-white p-0 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:w-auto sm:border-0 sm:bg-transparent sm:shadow-none">
+            <div className="flex-1 p-4 sm:flex-none sm:p-0">
               <div className="flex w-full items-center justify-between gap-3 sm:justify-end">
                 {ready && authenticated && (
                   <div className="flex-1 text-right sm:flex-none">
@@ -148,8 +148,10 @@ export default function Home() {
               </div>
             </div>
             {mounted && (
-              <div className="flex items-center rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:hidden">
-                <ThemeSwitcher />
+              <div className="flex items-center justify-center border-l border-gray-200 p-4 dark:border-gray-700 sm:hidden">
+                <div className="[&_button]:border-0">
+                  <ThemeSwitcher />
+                </div>
               </div>
             )}
           </div>
