@@ -68,7 +68,7 @@ export default function Home() {
                 ArcBeam
               </h1>
               <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
-                Bridge USDC across chains
+                Send USDC to anyone, anywhere
               </p>
             </div>
           </div>
