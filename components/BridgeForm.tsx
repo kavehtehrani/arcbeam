@@ -2,9 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { usePrivy, useWallets, useSendTransaction } from "@privy-io/react-auth";
+import {
+  usePrivy,
+  useWallets,
+  useSendTransaction,
+  useSign7702Authorization,
+} from "@privy-io/react-auth";
 import { useSetActiveWallet } from "@privy-io/wagmi";
-import { useSwitchChain } from "wagmi";
+import { useSwitchChain, useWalletClient } from "wagmi";
 import { BrowserProvider, isAddress } from "ethers";
 import {
   bridgeUSDC,
@@ -13,6 +18,8 @@ import {
   getTokenMessengerAddress,
 } from "@/lib/bridge";
 import { createPrivyTransactionWrapper } from "@/lib/PrivyTransactionWrapper";
+import { createEIP7702TransactionWrapper } from "@/lib/EIP7702TransactionWrapper";
+import { isEIP7702Supported, createPublicClientForChain } from "@/lib/eip7702";
 import BridgeProgress from "@/components/BridgeProgress";
 import ChainSelect from "@/components/ChainSelect";
 import {
@@ -29,8 +36,10 @@ export default function BridgeForm() {
   const { ready, authenticated } = usePrivy();
   const { wallets } = useWallets();
   const { sendTransaction: privySendTransaction } = useSendTransaction();
+  const { signAuthorization } = useSign7702Authorization();
   const { setActiveWallet } = useSetActiveWallet();
   const { switchChain } = useSwitchChain();
+  const { data: walletClient } = useWalletClient();
   const defaultAmount = process.env.NEXT_PUBLIC_DEV_DEFAULT_AMOUNT || "";
   const defaultRecipient = process.env.NEXT_PUBLIC_DEV_DEFAULT_RECIPIENT || "";
   const [amount, setAmount] = useState(defaultAmount);
@@ -50,6 +59,8 @@ export default function BridgeForm() {
   const [currentAllowance, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
   const [confirmEachStep, setConfirmEachStep] = useState<boolean>(false); // Default: off (skip completion screens)
+  const [enableGasSponsorship, setEnableGasSponsorship] =
+    useState<boolean>(false); // Default: off
   const [bridgeSteps, setBridgeSteps] = useState<
     Array<{
       step: string;
@@ -370,11 +381,83 @@ export default function BridgeForm() {
       // Create wrapped provider that intercepts transactions for custom UI messages
       // The wrapper passes through all non-transaction requests (chain switching, etc.)
       // so the adapter can still switch chains and perform other operations
-      const finalEip1193Provider = createPrivyTransactionWrapper(
+      let finalEip1193Provider = createPrivyTransactionWrapper(
         ethereumProvider,
         privySendTransaction,
         confirmEachStep // Pass the confirmEachStep setting
       );
+
+      // Wrap with EIP-7702 transaction wrapper if gas sponsorship is enabled and supported
+      if (
+        enableGasSponsorship &&
+        walletClient &&
+        isEIP7702Supported(sourceChain.chainId)
+      ) {
+        try {
+          // Check if destination chain also supports EIP-7702
+          const destinationSupportsEIP7702 = isEIP7702Supported(
+            destinationChain.chainId
+          );
+
+          if (!destinationSupportsEIP7702) {
+            console.warn(
+              `EIP-7702 gas sponsorship is not supported on destination chain ${destinationChain.name}. ` +
+                `Only source chain transactions will be sponsored.`
+            );
+          }
+
+          // Create a wrapper function that matches the expected signature
+          const signAuthorizationWrapper = async (params: {
+            contractAddress: `0x${string}`;
+            chainId?: number;
+            nonce?: number;
+            executor?: `0x${string}` | "self";
+          }): Promise<any> => {
+            return await signAuthorization({
+              contractAddress: params.contractAddress,
+              chainId: params.chainId,
+              nonce: params.nonce,
+              executor: params.executor,
+            });
+          };
+
+          // Function to get public client for any chain
+          const getPublicClientForChain = (chainConfig: ChainConfig) => {
+            return createPublicClientForChain(chainConfig);
+          };
+
+          finalEip1193Provider = createEIP7702TransactionWrapper(
+            finalEip1193Provider,
+            {
+              sourceChain,
+              destinationChain,
+              walletClient,
+              signAuthorization: signAuthorizationWrapper,
+              getPublicClientForChain,
+            }
+          );
+          console.log(
+            `EIP-7702 gas sponsorship enabled for ${sourceChain.name}${
+              destinationSupportsEIP7702 ? ` and ${destinationChain.name}` : ""
+            }`
+          );
+        } catch (error) {
+          console.error("Failed to enable EIP-7702 gas sponsorship:", error);
+          // If gas sponsorship is enabled but setup fails, throw error (no fallback)
+          throw new Error(
+            `Failed to enable EIP-7702 gas sponsorship: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+        }
+      } else if (
+        enableGasSponsorship &&
+        !isEIP7702Supported(sourceChain.chainId)
+      ) {
+        console.warn(
+          `EIP-7702 gas sponsorship is not supported on ${sourceChain.name}. Using regular transactions.`
+        );
+      }
 
       const provider = new BrowserProvider(finalEip1193Provider as any);
 
@@ -503,7 +586,7 @@ export default function BridgeForm() {
       <div className="bg-arcbeam-blue-gradient px-6 py-4 dark:bg-arcbeam-blue-gradient min-h-[4.5rem] flex items-center">
         <div className="flex items-center justify-between w-full">
           <h2 className="text-lg font-semibold text-white whitespace-nowrap">
-            Bridge USDC
+            Send USDC
           </h2>
           <div className="flex items-center justify-center rounded-full bg-white  shadow-lg">
             <Image
@@ -518,7 +601,7 @@ export default function BridgeForm() {
       </div>
       <div className="p-6">
         <form onSubmit={handleBridge} className="space-y-5">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
             <div className="flex min-w-0 flex-col">
               <ChainSelect
                 label="Source Chain"
@@ -553,9 +636,9 @@ export default function BridgeForm() {
               />
             </div>
 
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center self-end pb-2.5">
               <svg
-                className="h-6 w-6 -translate-y-0.5 text-gray-400 dark:text-gray-500"
+                className="h-6 w-6 text-gray-400 dark:text-gray-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -650,24 +733,75 @@ export default function BridgeForm() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="confirmEachStep"
-              checked={confirmEachStep}
-              onChange={(e) => setConfirmEachStep(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-gray-400"
-              disabled={status === "bridging" || status === "approving"}
-            />
-            <label
-              htmlFor="confirmEachStep"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
-            >
-              Confirm each step
-            </label>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              (Show completion screens for each transaction)
-            </span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="confirmEachStep"
+                checked={confirmEachStep}
+                onChange={(e) => setConfirmEachStep(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-gray-400"
+                disabled={status === "bridging" || status === "approving"}
+              />
+              <label
+                htmlFor="confirmEachStep"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+              >
+                Confirm each step
+              </label>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                (Show completion screens for each transaction)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="enableGasSponsorship"
+                checked={enableGasSponsorship}
+                onChange={(e) => setEnableGasSponsorship(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-gray-400"
+                disabled={
+                  status === "bridging" ||
+                  status === "approving" ||
+                  !isEIP7702Supported(sourceChain.chainId)
+                }
+              />
+              <label
+                htmlFor="enableGasSponsorship"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+              >
+                Enable gas sponsorship (EIP-7702)
+              </label>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {isEIP7702Supported(sourceChain.chainId)
+                  ? "(Send transactions without gas fees)"
+                  : `(Not supported on ${sourceChain.name})`}
+              </span>
+            </div>
+            {enableGasSponsorship &&
+              isEIP7702Supported(sourceChain.chainId) && (
+                <div className="ml-6 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                  <div className="flex items-start gap-2">
+                    <svg
+                      className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      Gas fees will be sponsored by Pimlico. You can bridge USDC
+                      even if you have no gas tokens on {sourceChain.name}.
+                    </p>
+                  </div>
+                </div>
+              )}
           </div>
 
           {/* Bridge Progress Steps */}
@@ -795,7 +929,7 @@ export default function BridgeForm() {
                   Processing...
                 </span>
               ) : (
-                "Bridge USDC"
+                "Send USDC"
               )}
             </button>
           </div>
