@@ -500,7 +500,7 @@ export default function BridgeForm() {
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4 dark:from-purple-600 dark:to-purple-700 min-h-[4.5rem] flex items-center">
+      <div className="bg-arcbeam-blue-gradient px-6 py-4 dark:bg-arcbeam-blue-gradient min-h-[4.5rem] flex items-center">
         <div className="flex items-center justify-between w-full">
           <h2 className="text-lg font-semibold text-white whitespace-nowrap">
             Bridge USDC
@@ -769,7 +769,7 @@ export default function BridgeForm() {
                 !amount ||
                 parseFloat(amount) <= 0
               }
-              className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+              className="rounded-lg bg-arcbeam-blue-gradient px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {status === "bridging" || status === "approving" ? (
                 <span className="flex items-center justify-center gap-2">

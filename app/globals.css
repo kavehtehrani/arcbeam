@@ -38,3 +38,7 @@ body {
 img {
   background: transparent;
 }
+
+.bg-arcbeam-blue-gradient {
+  background: linear-gradient(to right, #0d255d, #1a3d7a);
+}
