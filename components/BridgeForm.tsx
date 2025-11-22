@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { usePrivy, useWallets, useSendTransaction } from "@privy-io/react-auth";
 import { useSetActiveWallet } from "@privy-io/wagmi";
 import { useSwitchChain } from "wagmi";
-import { BrowserProvider } from "ethers";
+import { BrowserProvider, isAddress } from "ethers";
 import {
   bridgeUSDC,
   getUSDCBalance,
@@ -31,11 +31,14 @@ export default function BridgeForm() {
   const { setActiveWallet } = useSetActiveWallet();
   const { switchChain } = useSwitchChain();
   const defaultAmount = process.env.NEXT_PUBLIC_DEV_DEFAULT_AMOUNT || "";
+  const defaultRecipient = process.env.NEXT_PUBLIC_DEV_DEFAULT_RECIPIENT || "";
   const [amount, setAmount] = useState(defaultAmount);
   const [sourceChain, setSourceChain] = useState<ChainConfig>(ARC_CHAIN);
   const [destinationChain, setDestinationChain] = useState<ChainConfig>(
     ETHEREUM_SEPOLIA_CHAIN
   );
+  const [recipientAddress, setRecipientAddress] =
+    useState<string>(defaultRecipient);
   const [status, setStatus] = useState<BridgeStatus>("idle");
   const [txHash, setTxHash] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -209,6 +212,34 @@ export default function BridgeForm() {
       return;
     }
 
+    // Validate recipient address if provided - must be a valid EVM address
+    if (recipientAddress.trim()) {
+      const trimmedAddress = recipientAddress.trim();
+      if (!isAddress(trimmedAddress)) {
+        setError(
+          "Invalid recipient address. Please enter a valid Ethereum address (0x followed by 40 hex characters)."
+        );
+        setStatus("error");
+        isBridgingRef.current = false;
+        if (typeof window !== "undefined") {
+          delete (window as any).bridgeProgressCallback;
+        }
+        return;
+      }
+      // Also check if it's the same as the sender (which would be redundant)
+      if (trimmedAddress.toLowerCase() === wallet.address.toLowerCase()) {
+        setError(
+          "Recipient address is the same as your wallet address. Leave it empty to send to yourself."
+        );
+        setStatus("error");
+        isBridgingRef.current = false;
+        if (typeof window !== "undefined") {
+          delete (window as any).bridgeProgressCallback;
+        }
+        return;
+      }
+    }
+
     const availableBalance = getAvailableBalance();
     if (parseFloat(amount) > parseFloat(availableBalance)) {
       setError("Insufficient balance");
@@ -354,6 +385,7 @@ export default function BridgeForm() {
         userAddress: wallet.address,
         provider,
         eip1193Provider: finalEip1193Provider, // Use wrapped provider so transactions are intercepted
+        recipientAddress: recipientAddress.trim() || undefined, // Only include if provided and not empty
       });
 
       // Update bridge steps based on result
@@ -472,7 +504,7 @@ export default function BridgeForm() {
       </div>
       <div className="p-6">
         <form onSubmit={handleBridge} className="space-y-5">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
             <div className="flex min-w-0 flex-col">
               <ChainSelect
                 label="Source Chain"
@@ -509,7 +541,7 @@ export default function BridgeForm() {
 
             <div className="flex items-center justify-center">
               <svg
-                className="h-6 w-6 text-gray-400 dark:text-gray-500"
+                className="h-6 w-6 -translate-y-0.5 text-gray-400 dark:text-gray-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -541,6 +573,67 @@ export default function BridgeForm() {
                 disabled={status === "bridging" || status === "approving"}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Recipient Address (Optional)
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={recipientAddress}
+                onChange={(e) => setRecipientAddress(e.target.value)}
+                placeholder={
+                  wallet?.address || "Leave empty to send to your wallet"
+                }
+                className={`w-full rounded-lg border px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-1 disabled:bg-gray-50 disabled:text-gray-500 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:disabled:bg-gray-800 ${
+                  recipientAddress.trim() && !isAddress(recipientAddress.trim())
+                    ? "border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500 dark:border-red-700 dark:bg-red-900/20"
+                    : recipientAddress.trim() &&
+                      isAddress(recipientAddress.trim())
+                    ? "border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500 dark:border-green-700 dark:bg-green-900/20"
+                    : "border-gray-300 bg-white focus:border-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:focus:border-gray-400"
+                }`}
+                disabled={status === "bridging" || status === "approving"}
+              />
+              {recipientAddress.trim() &&
+                isAddress(recipientAddress.trim()) && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg
+                      className="h-5 w-5 text-green-600 dark:text-green-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                )}
+            </div>
+            {recipientAddress.trim() && !isAddress(recipientAddress.trim()) && (
+              <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
+                Invalid Ethereum address format. Please enter a valid
+                0x-prefixed address.
+              </p>
+            )}
+            {recipientAddress.trim() && isAddress(recipientAddress.trim()) && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Tokens will be sent to: {recipientAddress.trim().slice(0, 6)}...
+                {recipientAddress.trim().slice(-4)} on {destinationChain.name}
+              </p>
+            )}
+            {!recipientAddress.trim() && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Tokens will be sent to your wallet address on{" "}
+                {destinationChain.name}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

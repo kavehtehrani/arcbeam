@@ -33,6 +33,7 @@ export interface BridgeParams {
   userAddress: string;
   provider: BrowserProvider;
   eip1193Provider: any;
+  recipientAddress?: string; // Optional recipient address on destination chain
 }
 
 export interface BridgeResult {
@@ -337,15 +338,31 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
     );
 
     console.log("BridgeKit: Calling bridge() method...");
+
+    // Build the 'to' parameter with optional recipient address
+    const toParam: any = {
+      adapter: adapter,
+      chain: destinationChain.bridgeKitChainName as any,
+    };
+
+    // Add recipient address if provided and different from user address
+    if (
+      params.recipientAddress &&
+      params.recipientAddress !== params.userAddress
+    ) {
+      toParam.recipientAddress = params.recipientAddress;
+      console.log(
+        "BridgeKit: Using recipient address:",
+        params.recipientAddress
+      );
+    }
+
     const result = await bridgeKit.bridge({
       from: {
         adapter: adapter,
         chain: sourceChain.bridgeKitChainName as any,
       },
-      to: {
-        adapter: adapter,
-        chain: destinationChain.bridgeKitChainName as any,
-      },
+      to: toParam,
       amount: amount,
     });
 
