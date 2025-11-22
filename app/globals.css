@@ -6,6 +6,7 @@
   --background: #ffffff;
   --foreground: #171717;
   --arcbeam-blue-gradient: linear-gradient(to right, #0d255d, #1a3d7a);
+  --arcbeam-light-blue-gradient: linear-gradient(to right, #3b82f6, #60a5fa);
 }
 
 @theme inline {
@@ -42,4 +43,8 @@ img {
 
 .bg-arcbeam-blue-gradient {
   background: var(--arcbeam-blue-gradient);
+}
+
+.bg-arcbeam-light-blue-gradient {
+  background: var(--arcbeam-light-blue-gradient);
 }
