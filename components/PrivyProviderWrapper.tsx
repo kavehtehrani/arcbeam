@@ -3,9 +3,35 @@
 import { PrivyProvider } from "@privy-io/react-auth";
 import { WagmiProvider, createConfig } from "@privy-io/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useEffect, useState } from "react";
+import {
+  ReactNode,
+  useEffect,
+  useState,
+  createContext,
+  useContext,
+} from "react";
 import { http } from "viem";
 import { sepolia, baseSepolia, arbitrumSepolia, arcTestnet } from "viem/chains";
+
+// Context to share confirmEachStep state across the app
+interface ConfirmEachStepContextType {
+  confirmEachStep: boolean;
+  setConfirmEachStep: (value: boolean) => void;
+}
+
+const ConfirmEachStepContext = createContext<
+  ConfirmEachStepContextType | undefined
+>(undefined);
+
+export function useConfirmEachStep() {
+  const context = useContext(ConfirmEachStepContext);
+  if (context === undefined) {
+    throw new Error(
+      "useConfirmEachStep must be used within PrivyProviderWrapper"
+    );
+  }
+  return context;
+}
 
 interface PrivyProviderWrapperProps {
   children: ReactNode;
@@ -16,6 +42,7 @@ export default function PrivyProviderWrapper({
 }: PrivyProviderWrapperProps) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
   const [queryClient] = useState(() => new QueryClient());
+  const [confirmEachStep, setConfirmEachStep] = useState<boolean>(false);
 
   // Suppress non-critical errors from Privy's internal components
   useEffect(() => {
@@ -138,29 +165,36 @@ export default function PrivyProviderWrapper({
   });
 
   return (
-    <PrivyProvider
-      appId={appId}
-      config={{
-        loginMethods: ["email"],
-        appearance: {
-          theme: "light",
-          accentColor: "#676FFF",
-        },
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: "all-users",
-          },
-          showWalletUIs: true,
-        },
-        // Configure supported chains for Privy (required for custom chains like Arc Testnet)
-        // This ensures Privy's embedded wallets recognize and can switch to these chains
-        defaultChain: sepolia, // Default to Ethereum Sepolia
-        supportedChains: [sepolia, baseSepolia, arbitrumSepolia, arcTestnet],
-      }}
+    <ConfirmEachStepContext.Provider
+      value={{ confirmEachStep, setConfirmEachStep }}
     >
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
-      </QueryClientProvider>
-    </PrivyProvider>
+      <PrivyProvider
+        appId={appId}
+        config={{
+          loginMethods: ["email"],
+          appearance: {
+            theme: "light",
+            accentColor: "#676FFF",
+          },
+          embeddedWallets: {
+            ethereum: {
+              createOnLogin: "all-users",
+            },
+            // Toggle showWalletUIs based on confirmEachStep checkbox
+            // When false: no popups (seamless)
+            // When true: show popups for all operations including EIP-7702 authorizations
+            showWalletUIs: confirmEachStep,
+          },
+          // Configure supported chains for Privy (required for custom chains like Arc Testnet)
+          // This ensures Privy's embedded wallets recognize and can switch to these chains
+          defaultChain: sepolia, // Default to Ethereum Sepolia
+          supportedChains: [sepolia, baseSepolia, arbitrumSepolia, arcTestnet],
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
+        </QueryClientProvider>
+      </PrivyProvider>
+    </ConfirmEachStepContext.Provider>
   );
 }

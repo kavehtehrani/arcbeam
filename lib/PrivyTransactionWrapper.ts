@@ -117,8 +117,8 @@ export function createPrivyTransactionWrapper(
             description:
               "This allows the bridge contract to spend your USDC tokens. You'll need to approve this before the bridge can transfer your funds.",
             buttonText: "Approve USDC",
-            // Control whether to show completion screens based on user preference
-            // When false, skips the "all done" completion screen after each transaction
+            // Override global showWalletUIs setting based on user preference
+            // When confirmEachStep is true, show popups; when false, suppress them
             showWalletUIs: confirmEachStep,
           };
         } else if (tx.data && tx.data.startsWith("0xd0d4229a")) {
@@ -138,8 +138,8 @@ export function createPrivyTransactionWrapper(
             description:
               "This burns your USDC on the source chain. Your USDC will be locked and an attestation will be generated for minting on the destination chain.",
             buttonText: "Confirm Burn",
-            // Control whether to show completion screens based on user preference
-            // When false, skips the "all done" completion screen after each transaction
+            // Override global showWalletUIs setting based on user preference
+            // When confirmEachStep is true, show popups; when false, suppress them
             showWalletUIs: confirmEachStep,
           };
         } else if (
@@ -158,8 +158,8 @@ export function createPrivyTransactionWrapper(
             description:
               "This mints your USDC on the destination chain. Your USDC will be available in your wallet on the destination chain after this completes.",
             buttonText: "Confirm Mint",
-            // Control whether to show completion screens based on user preference
-            // When false, skips the "all done" completion screen after each transaction
+            // Override global showWalletUIs setting based on user preference
+            // When confirmEachStep is true, show popups; when false, suppress them
             showWalletUIs: confirmEachStep,
           };
         }

@@ -20,6 +20,7 @@ import {
 import { createPrivyTransactionWrapper } from "@/lib/PrivyTransactionWrapper";
 import { createEIP7702TransactionWrapper } from "@/lib/EIP7702TransactionWrapper";
 import { isEIP7702Supported, createPublicClientForChain } from "@/lib/eip7702";
+import { useConfirmEachStep } from "@/components/PrivyProviderWrapper";
 import BridgeProgress from "@/components/BridgeProgress";
 import ChainSelect from "@/components/ChainSelect";
 import {
@@ -58,7 +59,7 @@ export default function BridgeForm() {
   const [arcBalance, setArcBalance] = useState("0");
   const [currentAllowance, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
-  const [confirmEachStep, setConfirmEachStep] = useState<boolean>(false); // Default: off (skip completion screens)
+  const { confirmEachStep, setConfirmEachStep } = useConfirmEachStep(); // Get from context
   const [enableGasSponsorship, setEnableGasSponsorship] =
     useState<boolean>(false); // Default: off
   const [bridgeSteps, setBridgeSteps] = useState<
@@ -411,30 +412,29 @@ export default function BridgeForm() {
       if (shouldEnableSponsorship) {
         try {
           // Create a wrapper function that matches the expected signature
-          // Note: Privy's signAuthorization doesn't support showWalletUIs option,
-          // but we can check if there's a way to suppress it when confirmEachStep is false
+          // Privy's signAuthorization accepts options as second parameter
+          // We can try passing showWalletUIs there to suppress popups
           const signAuthorizationWrapper = async (params: {
             contractAddress: `0x${string}`;
             chainId?: number;
             nonce?: number;
             executor?: `0x${string}` | "self";
           }): Promise<any> => {
-            // Privy's signAuthorization may support options - check if we can pass showWalletUIs
-            // If confirmEachStep is false, try to suppress the popup if possible
-            const authParams: any = {
+            const authInput = {
               contractAddress: params.contractAddress,
               chainId: params.chainId,
               nonce: params.nonce,
               executor: params.executor,
             };
 
-            // Try to pass showWalletUIs option if Privy supports it
-            // This may not work, but it's worth trying
+            // Pass showWalletUIs in the options parameter (second argument)
+            // This might suppress the popup when confirmEachStep is false
+            const authOptions: any = {};
             if (!confirmEachStep) {
-              authParams.showWalletUIs = false;
+              authOptions.showWalletUIs = false;
             }
 
-            return await signAuthorization(authParams);
+            return await signAuthorization(authInput, authOptions);
           };
 
           // Function to get public client for any chain

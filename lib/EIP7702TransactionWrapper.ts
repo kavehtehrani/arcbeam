@@ -117,11 +117,7 @@ export function createEIP7702TransactionWrapper(
           "Step 2/3: Burning USDC on source chain..."
         );
       } else if (isMint) {
-        updateBridgeProgress(
-          "burn",
-          "completed",
-          "Step 2/3: Burn completed"
-        );
+        updateBridgeProgress("burn", "completed", "Step 2/3: Burn completed");
         updateBridgeProgress(
           "mint",
           "processing",
@@ -275,20 +271,26 @@ export function createEIP7702TransactionWrapper(
         }
 
         // Call signAuthorization with options to respect confirmEachStep
-        // Privy's signAuthorization may support showWalletUIs or similar options
-        const authParams: any = {
+        // Privy's signAuthorization accepts options as second parameter
+        // Even though it's not in the type definition, Privy may accept showWalletUIs
+        const authInput = {
           contractAddress: simpleAccountAddress as `0x${string}`,
           chainId: chainConfig.chainId,
           nonce,
         };
 
-        // Try to suppress popup when confirmEachStep is false
-        // Note: This may not work if Privy doesn't support this option for authorization
+        // Pass showWalletUIs in the options parameter (second argument)
+        // This might suppress the popup when confirmEachStep is false
+        const authOptions: any = {};
         if (!confirmEachStep) {
-          authParams.showWalletUIs = false;
+          authOptions.showWalletUIs = false;
         }
 
-        const authorizationResult = await signAuthorization(authParams);
+        // TypeScript may not recognize the second parameter, but Privy accepts it
+        const authorizationResult = await (signAuthorization as any)(
+          authInput,
+          authOptions
+        );
 
         // Extract authorization from the result
         let authorization: Hex;
