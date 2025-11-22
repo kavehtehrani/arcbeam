@@ -136,6 +136,27 @@ export default function BridgeForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, authenticated, wallet]);
 
+  // Refresh balances when all bridge steps complete
+  useEffect(() => {
+    if (bridgeSteps.length === 3) {
+      const allCompleted = bridgeSteps.every(
+        (step) => step.status === "completed"
+      );
+      if (allCompleted) {
+        // Refresh balances after a short delay to allow blockchain to update
+        const timeoutId = setTimeout(() => {
+          fetchBalances();
+          // Also trigger BalanceViewer refresh if it's listening
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("refreshBalances"));
+          }
+        }, 2000);
+        return () => clearTimeout(timeoutId);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeSteps]);
+
   useEffect(() => {
     if (defaultAmount && !amount && ready && authenticated) {
       setAmount(defaultAmount);
@@ -550,9 +571,8 @@ export default function BridgeForm() {
         setStatus("success");
         setError("");
 
-        setTimeout(() => {
-          fetchBalances();
-        }, 3000);
+        // Balances will be refreshed automatically when all steps complete
+        // (handled by the useEffect watching bridgeSteps)
       } else if (result.state === "partial") {
         setTxHash(result.sourceTxHash || "");
         setStatus("error");

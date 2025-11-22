@@ -201,6 +201,20 @@ export default function BalanceViewer() {
     }
   }, [ready, authenticated, embeddedWallet, walletAddress, fetchBalances]);
 
+  // Listen for balance refresh events from BridgeForm
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchBalances(true);
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("refreshBalances", handleRefresh);
+      return () => {
+        window.removeEventListener("refreshBalances", handleRefresh);
+      };
+    }
+  }, [fetchBalances]);
+
   const handleRefresh = useCallback(() => {
     fetchBalances(true);
   }, [fetchBalances]);
