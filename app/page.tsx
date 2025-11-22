@@ -53,7 +53,7 @@ export default function Home() {
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <main className="container mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-12 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+        <div className="mb-6 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div className="flex flex-shrink-0 items-center gap-4">
             <Image
               src="/logo.png"
