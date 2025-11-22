@@ -6,7 +6,6 @@
 import { zeroAddress, type Hex } from "viem";
 import {
   createEIP7702SmartAccountClient,
-  createPublicClientForChain,
   isEIP7702Supported,
   getSimpleAccountAddress,
   getSponsorshipPolicyId,

@@ -3,7 +3,7 @@
  * Enables gasless transactions using EIP-7702 authorization and Pimlico paymaster
  */
 
-import { createPublicClient, http, type PublicClient, type Hex } from "viem";
+import { createPublicClient, http, type PublicClient } from "viem";
 import { sepolia, baseSepolia, arbitrumSepolia } from "viem/chains";
 import { createSmartAccountClient } from "permissionless";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
