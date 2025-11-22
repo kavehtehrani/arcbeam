@@ -44,6 +44,7 @@ export default function BridgeForm() {
   const [arcBalance, setArcBalance] = useState("0");
   const [currentAllowance, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
+  const [confirmEachStep, setConfirmEachStep] = useState<boolean>(false); // Default: off (skip completion screens)
   const [bridgeSteps, setBridgeSteps] = useState<
     Array<{
       step: string;
@@ -54,8 +55,9 @@ export default function BridgeForm() {
   const isBridgingRef = useRef(false);
   const hasSetActiveWalletRef = useRef(false);
 
+  // Only use Privy embedded wallet - ignore external wallets like MetaMask
   const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
-  const wallet = embeddedWallet || wallets[0];
+  const wallet = embeddedWallet;
 
   useEffect(() => {
     if (sourceChain) {
@@ -124,7 +126,8 @@ export default function BridgeForm() {
   }, [defaultAmount, amount, ready, authenticated]);
 
   const fetchBalances = async () => {
-    if (!wallet) return;
+    // Only fetch balances for Privy embedded wallet
+    if (!wallet || wallet.walletClientType !== "privy") return;
     try {
       const [ethSepoliaBal, baseSepoliaBal, arbitrumSepoliaBal, arcBal] =
         await Promise.all([
@@ -190,8 +193,8 @@ export default function BridgeForm() {
       return;
     }
 
-    if (!ready || !authenticated || !wallet) {
-      setError("Please connect your wallet");
+    if (!ready || !authenticated || !wallet || wallet.walletClientType !== "privy") {
+      setError("Please connect with Privy embedded wallet (email login)");
       return;
     }
 
@@ -314,7 +317,8 @@ export default function BridgeForm() {
       // so the adapter can still switch chains and perform other operations
       const finalEip1193Provider = createPrivyTransactionWrapper(
         ethereumProvider,
-        privySendTransaction
+        privySendTransaction,
+        confirmEachStep // Pass the confirmEachStep setting
       );
 
       const provider = new BrowserProvider(finalEip1193Provider as any);

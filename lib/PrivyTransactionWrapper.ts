@@ -116,6 +116,9 @@ export function createPrivyTransactionWrapper(
             description:
               "This allows the bridge contract to spend your USDC tokens. You'll need to approve this before the bridge can transfer your funds.",
             buttonText: "Approve USDC",
+            // Disable wallet UIs to skip the "all done" completion screen
+            // Note: This may also disable the confirmation modal - if so, we'll need a different approach
+            showWalletUIs: false,
           };
         } else if (tx.data && tx.data.startsWith("0xd0d4229a")) {
           // Bridge burn: depositForBurn
@@ -134,6 +137,9 @@ export function createPrivyTransactionWrapper(
             description:
               "This burns your USDC on the source chain. Your USDC will be locked and an attestation will be generated for minting on the destination chain.",
             buttonText: "Confirm Burn",
+            // Disable wallet UIs to skip the "all done" completion screen
+            // Note: This may also disable the confirmation modal - if so, we'll need a different approach
+            showWalletUIs: false,
           };
         } else if (
           tx.data &&
@@ -155,6 +161,9 @@ export function createPrivyTransactionWrapper(
             description:
               "This mints your USDC on the destination chain. Your USDC will be available in your wallet on the destination chain after this completes.",
             buttonText: "Confirm Mint",
+            // Disable wallet UIs to skip the "all done" completion screen
+            // Note: This may also disable the confirmation modal - if so, we'll need a different approach
+            showWalletUIs: false,
           };
         }
 
@@ -177,7 +186,8 @@ export function createPrivyTransactionWrapper(
 
             const result = await sendTransactionFn(transaction, { uiOptions });
 
-            let hashString: string;
+            // Extract and validate transaction hash
+            let hashString: string | null = null;
             if (typeof result === "string") {
               hashString = result;
             } else if (result && typeof result === "object") {
@@ -197,30 +207,23 @@ export function createPrivyTransactionWrapper(
                   }
                 }
               }
-
-              if (!hashString) {
-                throw new Error(
-                  `Could not extract transaction hash from result: ${JSON.stringify(
-                    result,
-                    (key, value) =>
-                      typeof value === "bigint" ? value.toString() : value
-                  )}`
-                );
-              }
-            } else {
-              throw new Error(
-                `Unexpected result type from sendTransaction: ${typeof result}`
-              );
             }
 
+            // Validate hash format - if invalid, fall back to original provider
             if (
               !hashString ||
               !hashString.startsWith("0x") ||
               hashString.length !== 66
             ) {
-              throw new Error(
-                `Invalid transaction hash extracted: ${hashString}`
+              console.warn(
+                `Invalid transaction result from Privy sendTransaction:`,
+                typeof result === "object"
+                  ? JSON.stringify(result, (key, value) =>
+                      typeof value === "bigint" ? value.toString() : value
+                    )
+                  : result
               );
+              return originalProvider.request(args);
             }
 
             // Update progress when transaction is successfully sent

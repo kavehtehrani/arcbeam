@@ -286,17 +286,22 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
     const bridgeKit = initializeBridgeKit();
 
     if (!eip1193Provider) {
-      throw new Error("EIP-1193 provider is required for adapter creation");
+      return {
+        state: "error",
+        error: "EIP-1193 provider is required for adapter creation",
+      };
     }
 
     if (
       !sourceChain.bridgeKitChainName ||
       !destinationChain.bridgeKitChainName
     ) {
-      throw new Error(
-        `Bridge not supported: ${sourceChain.name} → ${destinationChain.name}. ` +
-          `Please use Arc Testnet, Ethereum Sepolia, Base Sepolia, or Arbitrum Sepolia.`
-      );
+      return {
+        state: "error",
+        error:
+          `Bridge not supported: ${sourceChain.name} → ${destinationChain.name}. ` +
+          `Please use Arc Testnet, Ethereum Sepolia, Base Sepolia, or Arbitrum Sepolia.`,
+      };
     }
 
     console.log("Creating Viem adapter for Circle Bridge Kit...");
@@ -435,11 +440,19 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
       };
     }
 
-    throw new Error("Invalid bridge result format - no transaction hash found");
+    // Return error result instead of throwing
+    return {
+      state: "error",
+      error: "Invalid bridge result format - no transaction hash found",
+    };
   } catch (error: any) {
     console.error("Error bridging USDC:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Bridge transaction failed";
-    throw new Error(errorMessage);
+    // Return error result instead of throwing
+    return {
+      state: "error",
+      error: errorMessage,
+    };
   }
 }

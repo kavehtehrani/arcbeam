@@ -1,0 +1,157 @@
+{
+  "Arc Testnet": {
+    "filename": "arc-testnet.svg",
+    "icon_id": "icon-blockchain/arc",
+    "path": "/logos/arc-testnet.svg"
+  },
+  "Ethereum Sepolia": {
+    "filename": "ethereum-sepolia.svg",
+    "icon_id": "icon-eth",
+    "path": "/logos/ethereum-sepolia.svg"
+  },
+  "Algorand Testnet": {
+    "filename": "algorand-testnet.svg",
+    "icon_id": "icon-algo",
+    "path": "/logos/algorand-testnet.svg"
+  },
+  "Aptos Testnet": {
+    "filename": "aptos-testnet.svg",
+    "icon_id": "icon-aptos",
+    "path": "/logos/aptos-testnet.svg"
+  },
+  "Arbitrum Sepolia": {
+    "filename": "arbitrum-sepolia.svg",
+    "icon_id": "icon-arb",
+    "path": "/logos/arbitrum-sepolia.svg"
+  },
+  "Avalanche Fuji": {
+    "filename": "avalanche-fuji.svg",
+    "icon_id": "icon-avax",
+    "path": "/logos/avalanche-fuji.svg"
+  },
+  "Base Sepolia": {
+    "filename": "base-sepolia.svg",
+    "icon_id": "icon-base",
+    "path": "/logos/base-sepolia.svg"
+  },
+  "Celo Sepolia": {
+    "filename": "celo-sepolia.svg",
+    "icon_id": "icon-celo",
+    "path": "/logos/celo-sepolia.svg"
+  },
+  "Codex Sepolia": {
+    "filename": "codex-sepolia.svg",
+    "icon_id": "icon-codex",
+    "path": "/logos/codex-sepolia.svg"
+  },
+  "Hedera Testnet": {
+    "filename": "hedera-testnet.svg",
+    "icon_id": "icon-hbar",
+    "path": "/logos/hedera-testnet.svg"
+  },
+  "HyperEVM Testnet": {
+    "filename": "hyperevm-testnet.svg",
+    "icon_id": "icon-hyperevm",
+    "path": "/logos/hyperevm-testnet.svg"
+  },
+  "Ink Sepolia": {
+    "filename": "ink-sepolia.svg",
+    "icon_id": "icon-ink",
+    "path": "/logos/ink-sepolia.svg"
+  },
+  "Linea Sepolia": {
+    "filename": "linea-sepolia.svg",
+    "icon_id": "icon-linea",
+    "path": "/logos/linea-sepolia.svg"
+  },
+  "Monad Testnet": {
+    "filename": "monad-testnet.svg",
+    "icon_id": "icon-monad",
+    "path": "/logos/monad-testnet.svg"
+  },
+  "Near Testnet": {
+    "filename": "near-testnet.svg",
+    "icon_id": "icon-near",
+    "path": "/logos/near-testnet.svg"
+  },
+  "Noble Testnet": {
+    "filename": "noble-testnet.svg",
+    "icon_id": "icon-noble",
+    "path": "/logos/noble-testnet.svg"
+  },
+  "OP Sepolia": {
+    "filename": "op-sepolia.svg",
+    "icon_id": "icon-op",
+    "path": "/logos/op-sepolia.svg"
+  },
+  "Polkadot Westend": {
+    "filename": "polkadot-westend.svg",
+    "icon_id": "icon-pah",
+    "path": "/logos/polkadot-westend.svg"
+  },
+  "Plume Testnet": {
+    "filename": "plume-testnet.svg",
+    "icon_id": "icon-plume",
+    "path": "/logos/plume-testnet.svg"
+  },
+  "Polygon PoS Amoy": {
+    "filename": "polygon-pos-amoy.svg",
+    "icon_id": "icon-poly",
+    "path": "/logos/polygon-pos-amoy.svg"
+  },
+  "Sei Testnet": {
+    "filename": "sei-testnet.svg",
+    "icon_id": "icon-sei",
+    "path": "/logos/sei-testnet.svg"
+  },
+  "Solana Devnet": {
+    "filename": "solana-devnet.svg",
+    "icon_id": "icon-sol",
+    "path": "/logos/solana-devnet.svg"
+  },
+  "Sonic Testnet": {
+    "filename": "sonic-testnet.svg",
+    "icon_id": "icon-sonic",
+    "path": "/logos/sonic-testnet.svg"
+  },
+  "Starknet Sepolia": {
+    "filename": "starknet-sepolia.svg",
+    "icon_id": "icon-strk",
+    "path": "/logos/starknet-sepolia.svg"
+  },
+  "Sui Testnet": {
+    "filename": "sui-testnet.svg",
+    "icon_id": "icon-sui",
+    "path": "/logos/sui-testnet.svg"
+  },
+  "Unichain Sepolia": {
+    "filename": "unichain-sepolia.svg",
+    "icon_id": "icon-uni",
+    "path": "/logos/unichain-sepolia.svg"
+  },
+  "Worldchain Sepolia": {
+    "filename": "worldchain-sepolia.svg",
+    "icon_id": "icon-worldchain",
+    "path": "/logos/worldchain-sepolia.svg"
+  },
+  "XDC Apothem": {
+    "filename": "xdc-apothem.svg",
+    "icon_id": "icon-xdc",
+    "path": "/logos/xdc-apothem.svg"
+  },
+  "Stellar Testnet": {
+    "filename": "stellar-testnet.svg",
+    "icon_id": "icon-xlm",
+    "path": "/logos/stellar-testnet.svg"
+  },
+  "XRP Ledger Testnet": {
+    "filename": "xrp-ledger-testnet.svg",
+    "icon_id": "icon-xrp",
+    "path": "/logos/xrp-ledger-testnet.svg"
+  },
+  "ZKsync Sepolia": {
+    "filename": "zksync-sepolia.svg",
+    "icon_id": "icon-zks",
+    "path": "/logos/zksync-sepolia.svg"
+  }
+}

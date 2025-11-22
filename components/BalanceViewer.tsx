@@ -9,6 +9,8 @@ import {
   BASE_SEPOLIA_CHAIN,
   ARBITRUM_SEPOLIA_CHAIN,
 } from "@/lib/chains";
+import { getChainLogoPath } from "@/lib/chainLogos";
+import Image from "next/image";
 
 interface ChainBalances {
   usdc: string;
@@ -33,15 +35,20 @@ export default function BalanceViewer() {
   const fetchingRef = useRef(false);
   const hasFetchedRef = useRef(false);
 
+  // Only use Privy embedded wallet - ignore external wallets like MetaMask
   const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
-  const wallet = embeddedWallet || wallets[0];
-  const walletAddress = wallet?.address;
+  const walletAddress = embeddedWallet?.address;
 
   const fetchBalances = useCallback(
     async (force = false) => {
       if (fetchingRef.current && !force) return;
 
-      if (!walletAddress) {
+      // Only fetch balances for Privy embedded wallet - ignore external wallets like MetaMask
+      if (
+        !embeddedWallet ||
+        !walletAddress ||
+        embeddedWallet.walletClientType !== "privy"
+      ) {
         setBalances({
           ethereumSepolia: { usdc: "0", eth: "0" },
           baseSepolia: { usdc: "0", eth: "0" },
@@ -51,6 +58,22 @@ export default function BalanceViewer() {
         setLoading(false);
         return;
       }
+
+      // Double-check we're using the correct wallet address
+      if (embeddedWallet.address !== walletAddress) {
+        console.warn("Wallet address mismatch - using embedded wallet address");
+        return;
+      }
+
+      // Log which wallet we're using for debugging
+      console.log("Fetching balances for Privy embedded wallet:", {
+        address: walletAddress,
+        walletType: embeddedWallet.walletClientType,
+        allWallets: wallets.map((w) => ({
+          address: w.address,
+          type: w.walletClientType,
+        })),
+      });
 
       fetchingRef.current = true;
       setLoading(true);
@@ -118,11 +141,19 @@ export default function BalanceViewer() {
         });
         hasFetchedRef.current = true;
         console.log("Balances fetched successfully:", {
+          arc: {
+            usdc: arcUSDC,
+            eth: "0",
+          },
           ethereumSepolia: {
             usdc: ethereumSepoliaUSDC,
             eth: ethereumSepoliaETH,
           },
           baseSepolia: { usdc: baseSepoliaUSDC, eth: baseSepoliaETH },
+          arbitrumSepolia: {
+            usdc: arbitrumSepoliaUSDC,
+            eth: arbitrumSepoliaETH,
+          },
           walletAddress,
         });
       } catch (error) {
@@ -145,12 +176,19 @@ export default function BalanceViewer() {
   );
 
   useEffect(() => {
-    if (ready && authenticated && walletAddress && !hasFetchedRef.current) {
+    // Only fetch if we have a Privy embedded wallet (not external wallets)
+    if (
+      ready &&
+      authenticated &&
+      embeddedWallet &&
+      walletAddress &&
+      !hasFetchedRef.current
+    ) {
       const timeoutId = setTimeout(() => {
         fetchBalances();
       }, 100);
       return () => clearTimeout(timeoutId);
-    } else if (!ready || !authenticated || !walletAddress) {
+    } else if (!ready || !authenticated || !embeddedWallet || !walletAddress) {
       setBalances({
         ethereumSepolia: { usdc: "0", eth: "0" },
         baseSepolia: { usdc: "0", eth: "0" },
@@ -161,7 +199,7 @@ export default function BalanceViewer() {
       hasFetchedRef.current = false;
       fetchingRef.current = false;
     }
-  }, [ready, authenticated, walletAddress, fetchBalances]);
+  }, [ready, authenticated, embeddedWallet, walletAddress, fetchBalances]);
 
   const handleRefresh = useCallback(() => {
     fetchBalances(true);
@@ -189,7 +227,6 @@ export default function BalanceViewer() {
   const networkItems = [
     {
       chain: "Arc Testnet",
-      color: "bg-green-500",
       tokens: [
         {
           symbol: "USDC",
@@ -200,7 +237,6 @@ export default function BalanceViewer() {
     },
     {
       chain: "Ethereum Sepolia",
-      color: "bg-blue-500",
       tokens: [
         {
           symbol: "USDC",
@@ -216,7 +252,6 @@ export default function BalanceViewer() {
     },
     {
       chain: "Base Sepolia",
-      color: "bg-purple-500",
       tokens: [
         {
           symbol: "USDC",
@@ -232,7 +267,6 @@ export default function BalanceViewer() {
     },
     {
       chain: "Arbitrum Sepolia",
-      color: "bg-cyan-500",
       tokens: [
         {
           symbol: "USDC",
@@ -249,6 +283,7 @@ export default function BalanceViewer() {
   ]
     .map((network) => ({
       ...network,
+      logoPath: getChainLogoPath(network.chain),
       tokens: network.tokens.filter((token) =>
         isBalanceGreaterThanZero(token.balance)
       ),
@@ -306,7 +341,17 @@ export default function BalanceViewer() {
               className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50"
             >
               <div className="mb-3 flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${network.color}`}></div>
+                {network.logoPath ? (
+                  <Image
+                    src={network.logoPath}
+                    alt={network.chain}
+                    width={20}
+                    height={20}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <div className="h-5 w-5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                )}
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {network.chain}
                 </p>
@@ -321,10 +366,55 @@ export default function BalanceViewer() {
                       <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
                     ) : (
                       <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                        {parseFloat(token.balance).toLocaleString(undefined, {
-                          minimumFractionDigits: token.decimals,
-                          maximumFractionDigits: token.decimals,
-                        })}
+                        {(() => {
+                          // Parse the balance string directly to avoid precision issues
+                          const balanceStr = String(token.balance).trim();
+
+                          // Debug logging for Arc Testnet USDC
+                          if (
+                            token.symbol === "USDC" &&
+                            network.chain === "Arc Testnet"
+                          ) {
+                            console.log("Arc USDC Balance Debug:", {
+                              rawBalance: token.balance,
+                              balanceStr,
+                              balanceType: typeof token.balance,
+                            });
+                          }
+
+                          if (
+                            !balanceStr ||
+                            balanceStr === "0" ||
+                            balanceStr === ""
+                          ) {
+                            return "0.00";
+                          }
+                          const balanceNum = parseFloat(balanceStr);
+                          if (isNaN(balanceNum)) {
+                            console.warn(
+                              `Invalid balance for ${token.symbol}:`,
+                              token.balance,
+                              "raw string:",
+                              balanceStr
+                            );
+                            return "0.00";
+                          }
+                          // Format with fixed decimal places
+                          const formatted = balanceNum.toFixed(token.decimals);
+
+                          // Debug logging for Arc Testnet USDC
+                          if (
+                            token.symbol === "USDC" &&
+                            network.chain === "Arc Testnet"
+                          ) {
+                            console.log("Arc USDC Balance Formatted:", {
+                              balanceNum,
+                              formatted,
+                            });
+                          }
+
+                          return formatted;
+                        })()}
                       </p>
                     )}
                   </div>
