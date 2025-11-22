@@ -614,21 +614,21 @@ export default function BridgeForm() {
 
     if (isArcSource) {
       if (isEIP7702Supported(destinationChain.chainId)) {
-        return `(Mint step on ${destinationChain.name} will be gasless)`;
+        return `Mint step on ${destinationChain.name} will be gasless. Approval and burn steps on ${sourceChain.name} will use regular transactions.`;
       } else {
-        return `(Not available: ${destinationChain.name} doesn't support EIP-7702)`;
+        return `Not available: ${destinationChain.name} doesn't support EIP-7702.`;
       }
     } else if (isArcDestination) {
       if (isEIP7702Supported(sourceChain.chainId)) {
-        return `(Approval and burn steps on ${sourceChain.name} will be gasless)`;
+        return `Approval and burn steps on ${sourceChain.name} will be gasless. Mint step on ${destinationChain.name} will use a regular transaction.`;
       } else {
-        return `(Not available: ${sourceChain.name} doesn't support EIP-7702)`;
+        return `Not available: ${sourceChain.name} doesn't support EIP-7702.`;
       }
     } else {
       if (isEIP7702Supported(sourceChain.chainId)) {
-        return "(Send transactions without gas fees)";
+        return "Send transactions without gas fees. Gas will be sponsored by Pimlico.";
       } else {
-        return `(Not supported on ${sourceChain.name})`;
+        return `Not supported on ${sourceChain.name}.`;
       }
     }
   };
@@ -816,9 +816,36 @@ export default function BridgeForm() {
               >
                 Confirm each step
               </label>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                (Show completion screens for each transaction)
-              </span>
+              <div className="group relative">
+                <button
+                  type="button"
+                  className="flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 rounded"
+                  disabled={status === "bridging" || status === "approving"}
+                  aria-label="Confirm each step information"
+                >
+                  <svg
+                    className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 disabled:opacity-50"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </button>
+                <div className="pointer-events-none invisible absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-700 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                  <p>
+                    Show completion screens for each transaction step. When
+                    enabled, you&#39;ll see a confirmation screen after each step
+                    completes.
+                  </p>
+                  <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"></div>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -842,15 +869,16 @@ export default function BridgeForm() {
               <div className="group relative">
                 <button
                   type="button"
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 rounded"
                   disabled={
                     status === "bridging" ||
                     status === "approving" ||
                     !isGasSponsorshipAvailable()
                   }
+                  aria-label="Gas sponsorship information"
                 >
                   <svg
-                    className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 disabled:opacity-50"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -863,7 +891,7 @@ export default function BridgeForm() {
                     />
                   </svg>
                 </button>
-                <div className="invisible absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                <div className="pointer-events-none invisible absolute left-1/2 top-full z-50 mt-2 w-72 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-700 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                   <p>{getGasSponsorshipHelpText()}</p>
                   <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"></div>
                 </div>
