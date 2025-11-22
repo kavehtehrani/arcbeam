@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -11,7 +12,7 @@ const nextConfig: NextConfig = {
   },
   // Explicitly set the root directory to prevent Next.js from detecting lockfiles in parent directories
   turbopack: {
-    root: ".",
+    root: path.resolve(__dirname),
   },
 };
 
