@@ -13,11 +13,14 @@ import { ChainConfig } from "./chains";
 
 // Simple Account implementation addresses for different chains
 // These are the contract addresses that will be authorized via EIP-7702
+// Note: Arc Testnet (5042002) uses conditional gas sponsorship:
+// - If Arc is source: only mint step (on destination) is sponsored
+// - If Arc is destination: only approval/burn steps (on source) are sponsored
 const SIMPLE_ACCOUNT_ADDRESSES: Record<number, string> = {
   11155111: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Ethereum Sepolia
   84532: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Base Sepolia (same address)
   421614: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Arbitrum Sepolia (same address)
-  // Arc Testnet may not support EIP-7702, so we'll skip it for now
+  // Arc Testnet (5042002) is not listed here but supports conditional sponsorship
 };
 
 // Map ChainConfig to viem Chain

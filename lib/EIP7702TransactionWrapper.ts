@@ -85,12 +85,44 @@ export function createEIP7702TransactionWrapper(
         return originalProvider.request(args);
       }
 
-      // Check if EIP-7702 is supported on this chain
-      if (!chainConfig || !isEIP7702Supported(chainConfig.chainId)) {
-        // Chain doesn't support EIP-7702 - pass through
-        if (isMint && !isEIP7702Supported(destinationChain.chainId)) {
+      // Arc chain gas sponsorship logic:
+      // - If Arc is source: only sponsor mint (destination chain)
+      // - If Arc is destination: only sponsor approval and burn (source chain)
+      const ARC_CHAIN_ID = 5042002;
+      const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
+      const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
+
+      // Determine if this transaction should be sponsored based on Arc rules
+      let shouldSponsor = false;
+      if (isArcSource) {
+        // Arc is source: only sponsor mint (destination chain)
+        shouldSponsor = isMint && isEIP7702Supported(destinationChain.chainId);
+      } else if (isArcDestination) {
+        // Arc is destination: only sponsor approval and burn (source chain)
+        shouldSponsor =
+          (isApproval || isBurn) && isEIP7702Supported(sourceChain.chainId);
+      } else {
+        // No Arc involved: use normal EIP-7702 support check
+        shouldSponsor = chainConfig && isEIP7702Supported(chainConfig.chainId);
+      }
+
+      // If sponsorship shouldn't be applied, pass through
+      if (!shouldSponsor) {
+        if (isArcSource && (isApproval || isBurn)) {
           console.log(
-            `EIP-7702 not supported on ${destinationChain.name} - using regular transaction for mint`
+            `Arc is source: skipping gas sponsorship for ${
+              isApproval ? "approval" : "burn"
+            } on source chain`
+          );
+        } else if (isArcDestination && isMint) {
+          console.log(
+            `Arc is destination: skipping gas sponsorship for mint on destination chain`
+          );
+        } else if (!chainConfig || !isEIP7702Supported(chainConfig.chainId)) {
+          console.log(
+            `EIP-7702 not supported on ${
+              chainConfig?.name || "unknown chain"
+            } - using regular transaction`
           );
         }
         return originalProvider.request(args);
@@ -158,7 +190,7 @@ export function createEIP7702TransactionWrapper(
 
         // Convert transaction to UserOperation format
         // Handle value conversion - it might be a hex string or number
-        let value = 0n;
+        let value = BigInt(0);
         if (tx.value) {
           if (typeof tx.value === "string") {
             value = BigInt(tx.value);

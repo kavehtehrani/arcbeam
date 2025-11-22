@@ -387,25 +387,29 @@ export default function BridgeForm() {
         confirmEachStep // Pass the confirmEachStep setting
       );
 
-      // Wrap with EIP-7702 transaction wrapper if gas sponsorship is enabled and supported
-      if (
+      // Wrap with EIP-7702 transaction wrapper if gas sponsorship is enabled
+      // Enable sponsorship when:
+      // 1. Arc is source (sponsor mint on destination)
+      // 2. Arc is destination (sponsor approval/burn on source)
+      // 3. Normal case: source chain supports EIP-7702
+      const ARC_CHAIN_ID = 5042002;
+      const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
+      const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
+      const sourceSupportsEIP7702 = isEIP7702Supported(sourceChain.chainId);
+      const destinationSupportsEIP7702 = isEIP7702Supported(
+        destinationChain.chainId
+      );
+
+      const shouldEnableSponsorship =
         enableGasSponsorship &&
         walletClient &&
-        isEIP7702Supported(sourceChain.chainId)
-      ) {
+        (isArcSource ||
+          isArcDestination ||
+          sourceSupportsEIP7702 ||
+          destinationSupportsEIP7702);
+
+      if (shouldEnableSponsorship) {
         try {
-          // Check if destination chain also supports EIP-7702
-          const destinationSupportsEIP7702 = isEIP7702Supported(
-            destinationChain.chainId
-          );
-
-          if (!destinationSupportsEIP7702) {
-            console.warn(
-              `EIP-7702 gas sponsorship is not supported on destination chain ${destinationChain.name}. ` +
-                `Only source chain transactions will be sponsored.`
-            );
-          }
-
           // Create a wrapper function that matches the expected signature
           const signAuthorizationWrapper = async (params: {
             contractAddress: `0x${string}`;
@@ -436,11 +440,28 @@ export default function BridgeForm() {
               getPublicClientForChain,
             }
           );
-          console.log(
-            `EIP-7702 gas sponsorship enabled for ${sourceChain.name}${
-              destinationSupportsEIP7702 ? ` and ${destinationChain.name}` : ""
-            }`
-          );
+
+          // Log sponsorship details
+          if (isArcSource) {
+            console.log(
+              `Arc is source: EIP-7702 gas sponsorship enabled for mint on ${destinationChain.name}`
+            );
+          } else if (isArcDestination) {
+            console.log(
+              `Arc is destination: EIP-7702 gas sponsorship enabled for approval/burn on ${sourceChain.name}`
+            );
+          } else {
+            const destinationSupportsEIP7702 = isEIP7702Supported(
+              destinationChain.chainId
+            );
+            console.log(
+              `EIP-7702 gas sponsorship enabled for ${sourceChain.name}${
+                destinationSupportsEIP7702
+                  ? ` and ${destinationChain.name}`
+                  : ""
+              }`
+            );
+          }
         } catch (error) {
           console.error("Failed to enable EIP-7702 gas sponsorship:", error);
           // If gas sponsorship is enabled but setup fails, throw error (no fallback)
@@ -450,12 +471,9 @@ export default function BridgeForm() {
             }`
           );
         }
-      } else if (
-        enableGasSponsorship &&
-        !isEIP7702Supported(sourceChain.chainId)
-      ) {
+      } else if (enableGasSponsorship && !shouldEnableSponsorship) {
         console.warn(
-          `EIP-7702 gas sponsorship is not supported on ${sourceChain.name}. Using regular transactions.`
+          `EIP-7702 gas sponsorship is not available for ${sourceChain.name} → ${destinationChain.name}. Using regular transactions.`
         );
       }
 
@@ -564,6 +582,55 @@ export default function BridgeForm() {
 
   const maxAmount = () => {
     setAmount(getAvailableBalance());
+  };
+
+  // Helper function to check if gas sponsorship is available
+  // Arc supports conditional sponsorship:
+  // - If Arc is source: sponsorship available for destination chain (mint step)
+  // - If Arc is destination: sponsorship available for source chain (approval/burn steps)
+  // - Otherwise: normal EIP-7702 support check
+  const isGasSponsorshipAvailable = (): boolean => {
+    const ARC_CHAIN_ID = 5042002;
+    const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
+    const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
+
+    if (isArcSource) {
+      // Arc is source: sponsorship available if destination supports EIP-7702
+      return isEIP7702Supported(destinationChain.chainId);
+    } else if (isArcDestination) {
+      // Arc is destination: sponsorship available if source supports EIP-7702
+      return isEIP7702Supported(sourceChain.chainId);
+    } else {
+      // Normal case: check if source chain supports EIP-7702
+      return isEIP7702Supported(sourceChain.chainId);
+    }
+  };
+
+  // Get help text for gas sponsorship based on Arc's role
+  const getGasSponsorshipHelpText = (): string => {
+    const ARC_CHAIN_ID = 5042002;
+    const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
+    const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
+
+    if (isArcSource) {
+      if (isEIP7702Supported(destinationChain.chainId)) {
+        return `(Mint step on ${destinationChain.name} will be gasless)`;
+      } else {
+        return `(Not available: ${destinationChain.name} doesn't support EIP-7702)`;
+      }
+    } else if (isArcDestination) {
+      if (isEIP7702Supported(sourceChain.chainId)) {
+        return `(Approval and burn steps on ${sourceChain.name} will be gasless)`;
+      } else {
+        return `(Not available: ${sourceChain.name} doesn't support EIP-7702)`;
+      }
+    } else {
+      if (isEIP7702Supported(sourceChain.chainId)) {
+        return "(Send transactions without gas fees)";
+      } else {
+        return `(Not supported on ${sourceChain.name})`;
+      }
+    }
   };
 
   if (!ready || !authenticated) {
@@ -763,7 +830,7 @@ export default function BridgeForm() {
                 disabled={
                   status === "bridging" ||
                   status === "approving" ||
-                  !isEIP7702Supported(sourceChain.chainId)
+                  !isGasSponsorshipAvailable()
                 }
               />
               <label
@@ -772,36 +839,90 @@ export default function BridgeForm() {
               >
                 Enable gas sponsorship (EIP-7702)
               </label>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {isEIP7702Supported(sourceChain.chainId)
-                  ? "(Send transactions without gas fees)"
-                  : `(Not supported on ${sourceChain.name})`}
-              </span>
+              <div className="group relative">
+                <button
+                  type="button"
+                  className="flex items-center justify-center"
+                  disabled={
+                    status === "bridging" ||
+                    status === "approving" ||
+                    !isGasSponsorshipAvailable()
+                  }
+                >
+                  <svg
+                    className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </button>
+                <div className="invisible absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                  <p>{getGasSponsorshipHelpText()}</p>
+                  <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"></div>
+                </div>
+              </div>
             </div>
-            {enableGasSponsorship &&
-              isEIP7702Supported(sourceChain.chainId) && (
-                <div className="ml-6 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
-                  <div className="flex items-start gap-2">
-                    <svg
-                      className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      Gas fees will be sponsored by Pimlico. You can bridge USDC
-                      even if you have no gas tokens on {sourceChain.name}.
-                    </p>
+            {enableGasSponsorship && isGasSponsorshipAvailable() && (
+              <div className="ml-6 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                <div className="flex items-start gap-2">
+                  <svg
+                    className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div className="text-xs text-blue-700 dark:text-blue-300">
+                    {(() => {
+                      const ARC_CHAIN_ID = 5042002;
+                      const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
+                      const isArcDestination =
+                        destinationChain.chainId === ARC_CHAIN_ID;
+
+                      if (isArcSource) {
+                        return (
+                          <p>
+                            Gas fees will be sponsored for the mint step on{" "}
+                            {destinationChain.name}. Approval and burn steps on{" "}
+                            {sourceChain.name} will use regular transactions.
+                          </p>
+                        );
+                      } else if (isArcDestination) {
+                        return (
+                          <p>
+                            Gas fees will be sponsored for approval and burn
+                            steps on {sourceChain.name}. Mint step on{" "}
+                            {destinationChain.name} will use a regular
+                            transaction.
+                          </p>
+                        );
+                      } else {
+                        return (
+                          <p>
+                            Gas fees will be sponsored by Pimlico. You can
+                            bridge USDC even if you have no gas tokens on{" "}
+                            {sourceChain.name}.
+                          </p>
+                        );
+                      }
+                    })()}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
           </div>
 
           {/* Bridge Progress Steps */}
