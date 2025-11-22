@@ -29,11 +29,10 @@ export default function BridgeForm() {
   const { setActiveWallet } = useSetActiveWallet();
   const defaultAmount = process.env.NEXT_PUBLIC_DEV_DEFAULT_AMOUNT || "";
   const [amount, setAmount] = useState(defaultAmount);
-  const [sourceChain, setSourceChain] = useState<ChainConfig>(
+  const [sourceChain, setSourceChain] = useState<ChainConfig>(ARC_CHAIN);
+  const [destinationChain, setDestinationChain] = useState<ChainConfig>(
     ETHEREUM_SEPOLIA_CHAIN
   );
-  const [destinationChain, setDestinationChain] =
-    useState<ChainConfig>(BASE_SEPOLIA_CHAIN);
   const [status, setStatus] = useState<BridgeStatus>("idle");
   const [txHash, setTxHash] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -263,6 +262,62 @@ export default function BridgeForm() {
         throw new Error("Failed to get Ethereum provider from wallet");
       }
 
+      // Add and switch to Arc Testnet chain if it's the source chain
+      if (sourceChain.chainId === 5042002 && ethereumProvider.request) {
+        try {
+          // First, try to add the chain to the wallet/provider
+          await ethereumProvider.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: "0x4CFA0A", // 5042002 in hex
+                chainName: "Arc Testnet",
+                nativeCurrency: {
+                  name: "USDC",
+                  symbol: "USDC",
+                  decimals: 6,
+                },
+                rpcUrls: [sourceChain.rpcUrl],
+                blockExplorerUrls: [sourceChain.blockExplorer],
+              },
+            ],
+          });
+        } catch (error) {
+          // Chain might already be added, continue
+          console.log("Chain add attempt (may already exist):", error);
+        }
+
+        try {
+          // Then switch to the Arc chain
+          await ethereumProvider.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0x4CFA0A" }], // 5042002 in hex
+          });
+        } catch (switchError: any) {
+          // If the chain is not added, add it first
+          if (switchError.code === 4902) {
+            await ethereumProvider.request({
+              method: "wallet_addEthereumChain",
+              params: [
+                {
+                  chainId: "0x4CFA0A",
+                  chainName: "Arc Testnet",
+                  nativeCurrency: {
+                    name: "USDC",
+                    symbol: "USDC",
+                    decimals: 6,
+                  },
+                  rpcUrls: [sourceChain.rpcUrl],
+                  blockExplorerUrls: [sourceChain.blockExplorer],
+                },
+              ],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
       const finalEip1193Provider = createPrivyTransactionWrapper(
         ethereumProvider,
         privySendTransaction
@@ -401,20 +456,22 @@ export default function BridgeForm() {
             value={sourceChain.chainId}
             onChange={(e) => {
               const chain = [
+                ARC_CHAIN,
                 ETHEREUM_SEPOLIA_CHAIN,
                 BASE_SEPOLIA_CHAIN,
                 ARBITRUM_SEPOLIA_CHAIN,
-                ARC_CHAIN,
               ].find((c) => c.chainId === parseInt(e.target.value));
               if (chain) {
                 setSourceChain(chain);
                 if (chain.chainId === destinationChain.chainId) {
-                  if (chain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId) {
-                    setDestinationChain(BASE_SEPOLIA_CHAIN);
+                  if (chain.chainId === ARC_CHAIN.chainId) {
+                    setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+                  } else if (chain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId) {
+                    setDestinationChain(ARC_CHAIN);
                   } else if (chain.chainId === BASE_SEPOLIA_CHAIN.chainId) {
-                    setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+                    setDestinationChain(ARC_CHAIN);
                   } else if (chain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId) {
-                    setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
+                    setDestinationChain(ARC_CHAIN);
                   } else {
                     setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
                   }
@@ -424,6 +481,7 @@ export default function BridgeForm() {
             className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
             disabled={status === "bridging" || status === "approving"}
           >
+            <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
             <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
               {ETHEREUM_SEPOLIA_CHAIN.name}
             </option>
@@ -432,9 +490,6 @@ export default function BridgeForm() {
             </option>
             <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
               {ARBITRUM_SEPOLIA_CHAIN.name}
-            </option>
-            <option value={ARC_CHAIN.chainId} disabled>
-              {ARC_CHAIN.name} (Coming soon)
             </option>
           </select>
         </div>
@@ -540,10 +595,10 @@ export default function BridgeForm() {
             value={destinationChain.chainId}
             onChange={(e) => {
               const chain = [
+                ARC_CHAIN,
                 ETHEREUM_SEPOLIA_CHAIN,
                 BASE_SEPOLIA_CHAIN,
                 ARBITRUM_SEPOLIA_CHAIN,
-                ARC_CHAIN,
               ].find((c) => c.chainId === parseInt(e.target.value));
               if (chain && chain.chainId !== sourceChain.chainId) {
                 setDestinationChain(chain);
@@ -552,44 +607,51 @@ export default function BridgeForm() {
             className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
             disabled={status === "bridging" || status === "approving"}
           >
-            {sourceChain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId ? (
+            {sourceChain.chainId === ARC_CHAIN.chainId ? (
               <>
+                <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
+                  {ETHEREUM_SEPOLIA_CHAIN.name}
+                </option>
                 <option value={BASE_SEPOLIA_CHAIN.chainId}>
                   {BASE_SEPOLIA_CHAIN.name}
                 </option>
                 <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
                   {ARBITRUM_SEPOLIA_CHAIN.name}
                 </option>
-                <option value={ARC_CHAIN.chainId} disabled>
-                  {ARC_CHAIN.name} (Coming soon)
+              </>
+            ) : sourceChain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId ? (
+              <>
+                <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
+                <option value={BASE_SEPOLIA_CHAIN.chainId}>
+                  {BASE_SEPOLIA_CHAIN.name}
+                </option>
+                <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
+                  {ARBITRUM_SEPOLIA_CHAIN.name}
                 </option>
               </>
             ) : sourceChain.chainId === BASE_SEPOLIA_CHAIN.chainId ? (
               <>
+                <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
                 <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
                   {ETHEREUM_SEPOLIA_CHAIN.name}
                 </option>
                 <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
                   {ARBITRUM_SEPOLIA_CHAIN.name}
                 </option>
-                <option value={ARC_CHAIN.chainId} disabled>
-                  {ARC_CHAIN.name} (Coming soon)
-                </option>
               </>
             ) : sourceChain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId ? (
               <>
+                <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
                 <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
                   {ETHEREUM_SEPOLIA_CHAIN.name}
                 </option>
                 <option value={BASE_SEPOLIA_CHAIN.chainId}>
                   {BASE_SEPOLIA_CHAIN.name}
                 </option>
-                <option value={ARC_CHAIN.chainId} disabled>
-                  {ARC_CHAIN.name} (Coming soon)
-                </option>
               </>
             ) : (
               <>
+                <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
                 <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
                   {ETHEREUM_SEPOLIA_CHAIN.name}
                 </option>

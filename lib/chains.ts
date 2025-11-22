@@ -1,3 +1,5 @@
+import { defineChain } from "viem";
+
 // Chain configurations for supported networks
 export interface ChainConfig {
   chainId: number;
@@ -54,26 +56,56 @@ export const ARBITRUM_SEPOLIA_CHAIN: ChainConfig = {
 };
 
 // Arc Testnet configuration
+// RPC URL: https://rpc.testnet.arc.network (from Arc docs)
+// Bridge Kit chain name follows pattern: ChainName_NetworkName
 export const ARC_CHAIN: ChainConfig = {
   chainId: 5042002,
   name: "Arc Testnet",
   rpcUrl:
     process.env.NEXT_PUBLIC_ARC_RPC_URL ??
     process.env.NEXT_PUBLIC_ARC_RPC_URL_FALLBACK ??
-    "",
+    "https://rpc.testnet.arc.network",
   usdcAddress:
     process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS ??
     "0x3600000000000000000000000000000000000000",
   blockExplorer: "https://testnet.arcscan.app",
+  bridgeKitChainName: "Arc_Testnet", // Circle Bridge Kit chain identifier (verify with Circle docs)
 };
 
 export const SUPPORTED_CHAINS = [
+  ARC_CHAIN,
   ETHEREUM_SEPOLIA_CHAIN,
   BASE_SEPOLIA_CHAIN,
   ARBITRUM_SEPOLIA_CHAIN,
-  ARC_CHAIN,
 ];
 
 export const getChainById = (chainId: number): ChainConfig | undefined => {
   return SUPPORTED_CHAINS.find((chain) => chain.chainId === chainId);
 };
+
+// Viem chain definitions for Wagmi/Privy integration
+// Arc Testnet as a custom viem chain
+export const arcTestnet = defineChain({
+  id: 5042002,
+  name: "Arc Testnet",
+  nativeCurrency: {
+    name: "USDC",
+    symbol: "USDC",
+    decimals: 6,
+  },
+  rpcUrls: {
+    default: {
+      http: [
+        process.env.NEXT_PUBLIC_ARC_RPC_URL ??
+          "https://rpc.testnet.arc.network",
+      ],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Arcscan",
+      url: "https://testnet.arcscan.app",
+    },
+  },
+  testnet: true,
+});

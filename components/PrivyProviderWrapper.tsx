@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useEffect, useState } from "react";
 import { http } from "viem";
 import { sepolia, baseSepolia, arbitrumSepolia } from "viem/chains";
+import { arcTestnet } from "../lib/chains";
 
 interface PrivyProviderWrapperProps {
   children: ReactNode;
@@ -128,11 +129,12 @@ export default function PrivyProviderWrapper({
   }
 
   const wagmiConfig = createConfig({
-    chains: [sepolia, baseSepolia, arbitrumSepolia],
+    chains: [sepolia, baseSepolia, arbitrumSepolia, arcTestnet],
     transports: {
       [sepolia.id]: http(),
       [baseSepolia.id]: http(),
       [arbitrumSepolia.id]: http(),
+      [arcTestnet.id]: http(),
     },
   });
 

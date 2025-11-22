@@ -15,9 +15,7 @@ export default function Home() {
   const { mounted } = useTheme();
   const [copied, setCopied] = useState(false);
 
-  const embeddedWallet = wallets.find(
-    (w) => w.walletClientType === "privy"
-  );
+  const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
   const wallet = embeddedWallet || wallets[0];
   const walletAddress = wallet?.address;
 

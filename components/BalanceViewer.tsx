@@ -57,50 +57,54 @@ export default function BalanceViewer() {
 
       try {
         const [
+          arcUSDC,
+          arcETH,
           ethereumSepoliaUSDC,
           ethereumSepoliaETH,
           baseSepoliaUSDC,
           baseSepoliaETH,
           arbitrumSepoliaUSDC,
           arbitrumSepoliaETH,
-          arcUSDC,
-          arcETH,
         ] = await Promise.all([
-          getUSDCBalance(
-            walletAddress,
-            ETHEREUM_SEPOLIA_CHAIN,
-            ETHEREUM_SEPOLIA_CHAIN.rpcUrl
-          ),
-          getETHBalance(
-            walletAddress,
-            ETHEREUM_SEPOLIA_CHAIN,
-            ETHEREUM_SEPOLIA_CHAIN.rpcUrl
-          ),
-          getUSDCBalance(
-            walletAddress,
-            BASE_SEPOLIA_CHAIN,
-            BASE_SEPOLIA_CHAIN.rpcUrl
-          ),
-          getETHBalance(
-            walletAddress,
-            BASE_SEPOLIA_CHAIN,
-            BASE_SEPOLIA_CHAIN.rpcUrl
-          ),
-          getUSDCBalance(
-            walletAddress,
-            ARBITRUM_SEPOLIA_CHAIN,
-            ARBITRUM_SEPOLIA_CHAIN.rpcUrl
-          ),
-          getETHBalance(
-            walletAddress,
-            ARBITRUM_SEPOLIA_CHAIN,
-            ARBITRUM_SEPOLIA_CHAIN.rpcUrl
-          ),
           getUSDCBalance(walletAddress, ARC_CHAIN, ARC_CHAIN.rpcUrl),
           getETHBalance(walletAddress, ARC_CHAIN, ARC_CHAIN.rpcUrl),
+          getUSDCBalance(
+            walletAddress,
+            ETHEREUM_SEPOLIA_CHAIN,
+            ETHEREUM_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getETHBalance(
+            walletAddress,
+            ETHEREUM_SEPOLIA_CHAIN,
+            ETHEREUM_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getUSDCBalance(
+            walletAddress,
+            BASE_SEPOLIA_CHAIN,
+            BASE_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getETHBalance(
+            walletAddress,
+            BASE_SEPOLIA_CHAIN,
+            BASE_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getUSDCBalance(
+            walletAddress,
+            ARBITRUM_SEPOLIA_CHAIN,
+            ARBITRUM_SEPOLIA_CHAIN.rpcUrl
+          ),
+          getETHBalance(
+            walletAddress,
+            ARBITRUM_SEPOLIA_CHAIN,
+            ARBITRUM_SEPOLIA_CHAIN.rpcUrl
+          ),
         ]);
 
         setBalances({
+          arc: {
+            usdc: arcUSDC,
+            eth: arcETH,
+          },
           ethereumSepolia: {
             usdc: ethereumSepoliaUSDC,
             eth: ethereumSepoliaETH,
@@ -112,10 +116,6 @@ export default function BalanceViewer() {
           arbitrumSepolia: {
             usdc: arbitrumSepoliaUSDC,
             eth: arbitrumSepoliaETH,
-          },
-          arc: {
-            usdc: arcUSDC,
-            eth: arcETH,
           },
         });
         hasFetchedRef.current = true;
@@ -222,6 +222,46 @@ export default function BalanceViewer() {
         </button>
       </div>
       <div className="space-y-4">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-500"></div>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Arc Testnet
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                USDC
+              </p>
+              {loading ? (
+                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
+              ) : (
+                <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {parseFloat(balances.arc.usdc).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              )}
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                ETH
+              </p>
+              {loading ? (
+                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
+              ) : (
+                <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {parseFloat(balances.arc.eth).toLocaleString(undefined, {
+                    minimumFractionDigits: 4,
+                    maximumFractionDigits: 4,
+                  })}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50">
           <div className="mb-3 flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-blue-500"></div>
@@ -355,49 +395,6 @@ export default function BalanceViewer() {
                       maximumFractionDigits: 4,
                     }
                   )}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-60 dark:border-gray-700 dark:bg-gray-700/50">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-gray-400 dark:bg-gray-500"></div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Arc Testnet
-            </p>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
-              (Coming soon)
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-500">
-                USDC
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-500 dark:text-gray-500">
-                  {parseFloat(balances.arc.usdc).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-500">
-                ETH
-              </p>
-              {loading ? (
-                <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-              ) : (
-                <p className="text-xl font-semibold text-gray-500 dark:text-gray-500">
-                  {parseFloat(balances.arc.eth).toLocaleString(undefined, {
-                    minimumFractionDigits: 4,
-                    maximumFractionDigits: 4,
-                  })}
                 </p>
               )}
             </div>
