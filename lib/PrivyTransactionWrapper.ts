@@ -5,7 +5,8 @@
 
 export function createPrivyTransactionWrapper(
   originalProvider: any,
-  sendTransactionFn: any
+  sendTransactionFn: any,
+  confirmEachStep: boolean = false // Default: false (skip completion screens)
 ): any {
   return {
     ...originalProvider,
@@ -116,9 +117,9 @@ export function createPrivyTransactionWrapper(
             description:
               "This allows the bridge contract to spend your USDC tokens. You'll need to approve this before the bridge can transfer your funds.",
             buttonText: "Approve USDC",
-            // Disable wallet UIs to skip the "all done" completion screen
-            // Note: This may also disable the confirmation modal - if so, we'll need a different approach
-            showWalletUIs: false,
+            // Control whether to show completion screens based on user preference
+            // When false, skips the "all done" completion screen after each transaction
+            showWalletUIs: confirmEachStep,
           };
         } else if (tx.data && tx.data.startsWith("0xd0d4229a")) {
           // Bridge burn: depositForBurn
@@ -137,9 +138,9 @@ export function createPrivyTransactionWrapper(
             description:
               "This burns your USDC on the source chain. Your USDC will be locked and an attestation will be generated for minting on the destination chain.",
             buttonText: "Confirm Burn",
-            // Disable wallet UIs to skip the "all done" completion screen
-            // Note: This may also disable the confirmation modal - if so, we'll need a different approach
-            showWalletUIs: false,
+            // Control whether to show completion screens based on user preference
+            // When false, skips the "all done" completion screen after each transaction
+            showWalletUIs: confirmEachStep,
           };
         } else if (
           tx.data &&
@@ -161,9 +162,9 @@ export function createPrivyTransactionWrapper(
             description:
               "This mints your USDC on the destination chain. Your USDC will be available in your wallet on the destination chain after this completes.",
             buttonText: "Confirm Mint",
-            // Disable wallet UIs to skip the "all done" completion screen
-            // Note: This may also disable the confirmation modal - if so, we'll need a different approach
-            showWalletUIs: false,
+            // Control whether to show completion screens based on user preference
+            // When false, skips the "all done" completion screen after each transaction
+            showWalletUIs: confirmEachStep,
           };
         }
 

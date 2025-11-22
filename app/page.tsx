@@ -69,7 +69,7 @@ export default function Home() {
                 ArcBeam
               </h1>
               <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
-                Bridge USDC between Arc and Sepolia with gasless transactions
+                Bridge USDC across chains
               </p>
             </div>
           </div>

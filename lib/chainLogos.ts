@@ -1,4 +1,29 @@
-import chainLogosMapping from "@/public/logos/chain-logos-mapping.json";
+// Chain logo mapping - matches the structure in public/logos/chain-logos-mapping.json
+const chainLogosMapping: Record<
+  string,
+  { filename: string; icon_id: string; path: string }
+> = {
+  "Arc Testnet": {
+    filename: "arc-testnet.svg",
+    icon_id: "icon-blockchain/arc",
+    path: "/logos/arc-testnet.svg",
+  },
+  "Ethereum Sepolia": {
+    filename: "ethereum-sepolia.svg",
+    icon_id: "icon-eth",
+    path: "/logos/ethereum-sepolia.svg",
+  },
+  "Base Sepolia": {
+    filename: "base-sepolia.svg",
+    icon_id: "icon-base",
+    path: "/logos/base-sepolia.svg",
+  },
+  "Arbitrum Sepolia": {
+    filename: "arbitrum-sepolia.svg",
+    icon_id: "icon-arb",
+    path: "/logos/arbitrum-sepolia.svg",
+  },
+};
 
 /**
  * Get the logo path for a chain name
@@ -6,7 +31,7 @@ import chainLogosMapping from "@/public/logos/chain-logos-mapping.json";
  * @returns The path to the logo SVG file, or null if not found
  */
 export function getChainLogoPath(chainName: string): string | null {
-  const chainInfo = chainLogosMapping[chainName as keyof typeof chainLogosMapping];
+  const chainInfo = chainLogosMapping[chainName];
   return chainInfo?.path || null;
 }
 
@@ -16,7 +41,7 @@ export function getChainLogoPath(chainName: string): string | null {
  * @returns The filename of the logo SVG, or null if not found
  */
 export function getChainLogoFilename(chainName: string): string | null {
-  const chainInfo = chainLogosMapping[chainName as keyof typeof chainLogosMapping];
+  const chainInfo = chainLogosMapping[chainName];
   return chainInfo?.filename || null;
 }
 

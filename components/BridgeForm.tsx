@@ -13,6 +13,7 @@ import {
 } from "@/lib/bridge";
 import { createPrivyTransactionWrapper } from "@/lib/PrivyTransactionWrapper";
 import BridgeProgress from "@/components/BridgeProgress";
+import ChainSelect from "@/components/ChainSelect";
 import {
   ARC_CHAIN,
   ETHEREUM_SEPOLIA_CHAIN,
@@ -193,7 +194,12 @@ export default function BridgeForm() {
       return;
     }
 
-    if (!ready || !authenticated || !wallet || wallet.walletClientType !== "privy") {
+    if (
+      !ready ||
+      !authenticated ||
+      !wallet ||
+      wallet.walletClientType !== "privy"
+    ) {
       setError("Please connect with Privy embedded wallet (email login)");
       return;
     }
@@ -257,21 +263,32 @@ export default function BridgeForm() {
 
     try {
       if (!wallet || wallet.walletClientType !== "privy") {
-        throw new Error(
+        setError(
           "Only Privy embedded wallets are supported. Please use email login."
         );
+        setStatus("error");
+        isBridgingRef.current = false;
+        if (typeof window !== "undefined") {
+          delete (window as any).bridgeProgressCallback;
+        }
+        return;
       }
 
       // Switch to source chain before creating adapter (following reference implementation pattern)
       // This ensures the chain is active in the provider before the adapter tries to use it
       try {
-        console.log(`Switching to source chain ${sourceChain.name} (${sourceChain.chainId})...`);
+        console.log(
+          `Switching to source chain ${sourceChain.name} (${sourceChain.chainId})...`
+        );
         await switchChain({ chainId: sourceChain.chainId });
         // Give it a moment to complete the switch (reference uses 1000ms, we use 1500ms to be safe)
         await new Promise((resolve) => setTimeout(resolve, 1500));
         console.log("Chain switch completed");
       } catch (error) {
-        console.warn(`Could not switch to ${sourceChain.name} via wagmi:`, error);
+        console.warn(
+          `Could not switch to ${sourceChain.name} via wagmi:`,
+          error
+        );
         // If switching fails, try to add the chain to the wallet (for Arc Testnet)
         if (sourceChain.chainId === 5042002) {
           try {
@@ -309,7 +326,13 @@ export default function BridgeForm() {
 
       const ethereumProvider = await wallet.getEthereumProvider();
       if (!ethereumProvider) {
-        throw new Error("Failed to get Ethereum provider from wallet");
+        setError("Failed to get Ethereum provider from wallet");
+        setStatus("error");
+        isBridgingRef.current = false;
+        if (typeof window !== "undefined") {
+          delete (window as any).bridgeProgressCallback;
+        }
+        return;
       }
 
       // Create wrapped provider that intercepts transactions for custom UI messages
@@ -446,20 +469,12 @@ export default function BridgeForm() {
         Bridge USDC
       </h2>
       <form onSubmit={handleBridge} className="space-y-5">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Source Chain
-          </label>
-          <select
-            value={sourceChain.chainId}
-            onChange={(e) => {
-              const chain = [
-                ARC_CHAIN,
-                ETHEREUM_SEPOLIA_CHAIN,
-                BASE_SEPOLIA_CHAIN,
-                ARBITRUM_SEPOLIA_CHAIN,
-              ].find((c) => c.chainId === parseInt(e.target.value));
-              if (chain) {
+        <div className="flex items-end gap-4">
+          <div className="flex-1">
+            <ChainSelect
+              label="Source Chain"
+              value={sourceChain}
+              onChange={(chain) => {
                 setSourceChain(chain);
                 if (chain.chainId === destinationChain.chainId) {
                   if (chain.chainId === ARC_CHAIN.chainId) {
@@ -474,22 +489,51 @@ export default function BridgeForm() {
                     setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
                   }
                 }
-              }
-            }}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
-            disabled={status === "bridging" || status === "approving"}
-          >
-            <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
-            <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
-              {ETHEREUM_SEPOLIA_CHAIN.name}
-            </option>
-            <option value={BASE_SEPOLIA_CHAIN.chainId}>
-              {BASE_SEPOLIA_CHAIN.name}
-            </option>
-            <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
-              {ARBITRUM_SEPOLIA_CHAIN.name}
-            </option>
-          </select>
+              }}
+              options={[
+                ARC_CHAIN,
+                ETHEREUM_SEPOLIA_CHAIN,
+                BASE_SEPOLIA_CHAIN,
+                ARBITRUM_SEPOLIA_CHAIN,
+              ]}
+              disabled={status === "bridging" || status === "approving"}
+            />
+          </div>
+
+          <div className="flex items-center justify-center pb-2">
+            <svg
+              className="h-6 w-6 text-gray-400 dark:text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 7l5 5m0 0l-5 5m5-5H6"
+              />
+            </svg>
+          </div>
+
+          <div className="flex-1">
+            <ChainSelect
+              label="Destination Chain"
+              value={destinationChain}
+              onChange={(chain) => {
+                if (chain.chainId !== sourceChain.chainId) {
+                  setDestinationChain(chain);
+                }
+              }}
+              options={[
+                ARC_CHAIN,
+                ETHEREUM_SEPOLIA_CHAIN,
+                BASE_SEPOLIA_CHAIN,
+                ARBITRUM_SEPOLIA_CHAIN,
+              ].filter((chain) => chain.chainId !== sourceChain.chainId)}
+              disabled={status === "bridging" || status === "approving"}
+            />
+          </div>
         </div>
 
         <div>
@@ -585,83 +629,24 @@ export default function BridgeForm() {
           </div>
         )}
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Destination Chain
-          </label>
-          <select
-            value={destinationChain.chainId}
-            onChange={(e) => {
-              const chain = [
-                ARC_CHAIN,
-                ETHEREUM_SEPOLIA_CHAIN,
-                BASE_SEPOLIA_CHAIN,
-                ARBITRUM_SEPOLIA_CHAIN,
-              ].find((c) => c.chainId === parseInt(e.target.value));
-              if (chain && chain.chainId !== sourceChain.chainId) {
-                setDestinationChain(chain);
-              }
-            }}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="confirmEachStep"
+            checked={confirmEachStep}
+            onChange={(e) => setConfirmEachStep(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-gray-400"
             disabled={status === "bridging" || status === "approving"}
+          />
+          <label
+            htmlFor="confirmEachStep"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
           >
-            {sourceChain.chainId === ARC_CHAIN.chainId ? (
-              <>
-                <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
-                  {ETHEREUM_SEPOLIA_CHAIN.name}
-                </option>
-                <option value={BASE_SEPOLIA_CHAIN.chainId}>
-                  {BASE_SEPOLIA_CHAIN.name}
-                </option>
-                <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
-                  {ARBITRUM_SEPOLIA_CHAIN.name}
-                </option>
-              </>
-            ) : sourceChain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId ? (
-              <>
-                <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
-                <option value={BASE_SEPOLIA_CHAIN.chainId}>
-                  {BASE_SEPOLIA_CHAIN.name}
-                </option>
-                <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
-                  {ARBITRUM_SEPOLIA_CHAIN.name}
-                </option>
-              </>
-            ) : sourceChain.chainId === BASE_SEPOLIA_CHAIN.chainId ? (
-              <>
-                <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
-                <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
-                  {ETHEREUM_SEPOLIA_CHAIN.name}
-                </option>
-                <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
-                  {ARBITRUM_SEPOLIA_CHAIN.name}
-                </option>
-              </>
-            ) : sourceChain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId ? (
-              <>
-                <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
-                <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
-                  {ETHEREUM_SEPOLIA_CHAIN.name}
-                </option>
-                <option value={BASE_SEPOLIA_CHAIN.chainId}>
-                  {BASE_SEPOLIA_CHAIN.name}
-                </option>
-              </>
-            ) : (
-              <>
-                <option value={ARC_CHAIN.chainId}>{ARC_CHAIN.name}</option>
-                <option value={ETHEREUM_SEPOLIA_CHAIN.chainId}>
-                  {ETHEREUM_SEPOLIA_CHAIN.name}
-                </option>
-                <option value={BASE_SEPOLIA_CHAIN.chainId}>
-                  {BASE_SEPOLIA_CHAIN.name}
-                </option>
-                <option value={ARBITRUM_SEPOLIA_CHAIN.chainId}>
-                  {ARBITRUM_SEPOLIA_CHAIN.name}
-                </option>
-              </>
-            )}
-          </select>
+            Confirm each step
+          </label>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            (Show completion screens for each transaction)
+          </span>
         </div>
 
         {/* Bridge Progress Steps */}

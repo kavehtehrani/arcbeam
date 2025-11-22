@@ -18,7 +18,7 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: "ArcBeam | Cross-Chain USDC Bridge",
-  description: "Bridge USDC between Arc and Sepolia with gasless transactions",
+  description: "Bridge USDC across chains",
 };
 
 export default function RootLayout({
