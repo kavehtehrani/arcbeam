@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { usePrivy, useWallets, useSendTransaction } from "@privy-io/react-auth";
 import { useSetActiveWallet } from "@privy-io/wagmi";
 import { useSwitchChain } from "wagmi";
@@ -499,8 +500,21 @@ export default function BridgeForm() {
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4 dark:from-purple-600 dark:to-purple-700">
-        <h2 className="text-lg font-semibold text-white">Bridge USDC</h2>
+      <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4 dark:from-purple-600 dark:to-purple-700 min-h-[4.5rem] flex items-center">
+        <div className="flex items-center justify-between w-full">
+          <h2 className="text-lg font-semibold text-white whitespace-nowrap">
+            Bridge USDC
+          </h2>
+          <div className="flex items-center justify-center rounded-full bg-white  shadow-lg">
+            <Image
+              src="/logos/usd-coin-usdc-logo.svg"
+              alt="USDC"
+              width={40}
+              height={40}
+              className="h-10 w-10"
+            />
+          </div>
+        </div>
       </div>
       <div className="p-6">
         <form onSubmit={handleBridge} className="space-y-5">

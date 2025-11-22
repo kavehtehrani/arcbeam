@@ -58,9 +58,9 @@ export default function Home() {
             <Image
               src="/logo.png"
               alt="arcbeam"
-              width={48}
-              height={48}
-              className="h-12 w-12 bg-transparent"
+              width={64}
+              height={64}
+              className="h-16 w-16 bg-transparent sm:h-20 sm:w-20"
               style={{ background: "transparent" }}
             />
             <div>

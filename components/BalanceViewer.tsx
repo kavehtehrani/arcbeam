@@ -292,9 +292,11 @@ export default function BalanceViewer() {
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 dark:from-blue-600 dark:to-blue-700">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Balances</h2>
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 dark:from-blue-600 dark:to-blue-700 min-h-[4.5rem]">
+        <div className="flex items-center justify-between h-full">
+          <h2 className="text-lg font-semibold text-white whitespace-nowrap">
+            Balances
+          </h2>
           <button
             onClick={handleRefresh}
             disabled={loading}
