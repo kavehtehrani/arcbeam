@@ -259,16 +259,48 @@ export default function BridgeForm() {
         );
       }
 
-      // Switch to source chain if it's Arc Testnet (to ensure wagmi/viem recognizes it)
-      if (sourceChain.chainId === 5042002) {
-        try {
-          console.log("Switching to Arc Testnet before bridge...");
-          await switchChain({ chainId: 5042002 });
-          // Give it a moment to complete the switch
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        } catch (error) {
-          console.warn("Could not switch to Arc Testnet via wagmi:", error);
-          // Continue anyway - the adapter might still work
+      // Switch to source chain before creating adapter (following reference implementation pattern)
+      // This ensures the chain is active in the provider before the adapter tries to use it
+      try {
+        console.log(`Switching to source chain ${sourceChain.name} (${sourceChain.chainId})...`);
+        await switchChain({ chainId: sourceChain.chainId });
+        // Give it a moment to complete the switch (reference uses 1000ms, we use 1500ms to be safe)
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        console.log("Chain switch completed");
+      } catch (error) {
+        console.warn(`Could not switch to ${sourceChain.name} via wagmi:`, error);
+        // If switching fails, try to add the chain to the wallet (for Arc Testnet)
+        if (sourceChain.chainId === 5042002) {
+          try {
+            const ethereumProvider = await wallet.getEthereumProvider();
+            if (ethereumProvider && ethereumProvider.request) {
+              console.log("Attempting to add Arc Testnet to wallet...");
+              await ethereumProvider.request({
+                method: "wallet_addEthereumChain",
+                params: [
+                  {
+                    chainId: `0x${sourceChain.chainId.toString(16)}`,
+                    chainName: sourceChain.name,
+                    nativeCurrency: {
+                      name: "USDC",
+                      symbol: "USDC",
+                      decimals: 18,
+                    },
+                    rpcUrls: [sourceChain.rpcUrl],
+                    blockExplorerUrls: sourceChain.blockExplorer
+                      ? [sourceChain.blockExplorer]
+                      : [],
+                  },
+                ],
+              });
+              // Try switching again after adding
+              await switchChain({ chainId: sourceChain.chainId });
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          } catch (addChainError) {
+            console.warn("Could not add Arc Testnet to wallet:", addChainError);
+            // Continue anyway - the adapter might still work if chain is already added
+          }
         }
       }
 
@@ -277,6 +309,9 @@ export default function BridgeForm() {
         throw new Error("Failed to get Ethereum provider from wallet");
       }
 
+      // Create wrapped provider that intercepts transactions for custom UI messages
+      // The wrapper passes through all non-transaction requests (chain switching, etc.)
+      // so the adapter can still switch chains and perform other operations
       const finalEip1193Provider = createPrivyTransactionWrapper(
         ethereumProvider,
         privySendTransaction
@@ -291,7 +326,7 @@ export default function BridgeForm() {
         destinationChain,
         userAddress: wallet.address,
         provider,
-        eip1193Provider: finalEip1193Provider,
+        eip1193Provider: finalEip1193Provider, // Use wrapped provider so transactions are intercepted
       });
 
       // Update bridge steps based on result

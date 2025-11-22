@@ -10,6 +10,68 @@ export function createPrivyTransactionWrapper(
   return {
     ...originalProvider,
     request: async (args: { method: string; params?: any[] }) => {
+      // Handle wallet_switchChain - critical for Arc Testnet
+      // Viem validates chain IDs, but we need to ensure the provider can handle the switch
+      // even if viem doesn't recognize the chain
+      if (args.method === "wallet_switchChain") {
+        try {
+          return await originalProvider.request(args);
+        } catch (error: any) {
+          // If switching fails and it's Arc Testnet, try to add the chain first
+          const chainId = args.params?.[0]?.chainId;
+          const isArcTestnet =
+            chainId === "0x4cef52" ||
+            chainId === 5042002 ||
+            (typeof chainId === "string" && parseInt(chainId, 16) === 5042002);
+
+          if (isArcTestnet) {
+            console.log(
+              "Arc Testnet switch failed, attempting to add chain first..."
+            );
+            try {
+              // Try to add the chain first
+              await originalProvider.request({
+                method: "wallet_addEthereumChain",
+                params: [
+                  {
+                    chainId:
+                      typeof chainId === "number"
+                        ? `0x${chainId.toString(16)}`
+                        : chainId,
+                    chainName: "Arc Testnet",
+                    nativeCurrency: {
+                      name: "USDC",
+                      symbol: "USDC",
+                      decimals: 18,
+                    },
+                    rpcUrls: ["https://rpc.testnet.arc.network"],
+                    blockExplorerUrls: ["https://testnet.arcscan.app"],
+                  },
+                ],
+              });
+              // Now try switching again
+              return await originalProvider.request(args);
+            } catch (addError) {
+              console.warn("Failed to add Arc Testnet:", addError);
+              // Throw original error
+              throw error;
+            }
+          }
+          throw error;
+        }
+      }
+
+      // Handle wallet_addEthereumChain
+      if (args.method === "wallet_addEthereumChain") {
+        return originalProvider.request(args);
+      }
+
+      // Pass through all other non-transaction requests immediately (chain switching, etc.)
+      // This ensures the adapter can switch chains and perform other operations
+      if (args.method !== "eth_sendTransaction") {
+        return originalProvider.request(args);
+      }
+
       if (args.method === "eth_sendTransaction" && args.params?.[0]) {
         const tx = args.params[0];
 

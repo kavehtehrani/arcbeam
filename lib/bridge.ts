@@ -7,6 +7,16 @@ import {
   formatUnits,
   getAddress,
 } from "ethers";
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  http,
+  type Chain,
+  type PublicClient,
+  type WalletClient,
+} from "viem";
+import { arcTestnet } from "viem/chains";
 import { ChainConfig } from "./chains";
 
 // ERC20 ABI for balance and allowance queries
@@ -47,18 +57,58 @@ export interface BridgeResult {
 /**
  * Create Viem adapter from EIP-1193 provider for Circle Bridge Kit
  *
- * Note: The Circle Bridge Kit adapter uses viem internally and may not recognize
- * custom chains like Arc Testnet. If you encounter "Unsupported chainId" errors,
- * it may indicate that Circle Bridge Kit doesn't yet support Arc Testnet, or
- * the chain identifier needs to be verified with Circle's documentation.
+ * Note: We need to provide getPublicClient to handle Arc Testnet since viem doesn't
+ * recognize it by default. The adapter uses viem internally and needs the chain definition.
  */
 async function createViemAdapter(
-  eip1193Provider: any
+  eip1193Provider: any,
+  sourceChainId?: number,
+  destinationChainId?: number
 ): Promise<Awaited<ReturnType<typeof createAdapterFromProvider>>> {
   if (!eip1193Provider) {
     throw new Error("EIP-1193 provider is required");
   }
 
+  // If Arc Testnet is involved, we need to provide getPublicClient so viem knows about it
+  const needsArcConfig =
+    sourceChainId === 5042002 || destinationChainId === 5042002;
+
+  if (needsArcConfig) {
+    return createAdapterFromProvider({
+      provider: eip1193Provider,
+      getPublicClient: ({ chain }: { chain: Chain }): PublicClient => {
+        // If viem asks for Arc Testnet, provide our custom chain definition
+        if (chain.id === 5042002) {
+          return createPublicClient({
+            chain: arcTestnet,
+            transport: http(arcTestnet.rpcUrls.default.http[0]),
+          });
+        }
+        // For other chains, use default viem behavior
+        return createPublicClient({
+          chain,
+          transport: http(),
+        });
+      },
+      getWalletClient: ({ chain }: { chain: Chain }): WalletClient => {
+        // If viem asks for Arc Testnet, provide our custom chain definition
+        // This is critical for chain switching - the wallet client needs to know about Arc Testnet
+        if (chain.id === 5042002) {
+          return createWalletClient({
+            chain: arcTestnet,
+            transport: custom(eip1193Provider),
+          });
+        }
+        // For other chains, use default viem behavior
+        return createWalletClient({
+          chain,
+          transport: custom(eip1193Provider),
+        });
+      },
+    });
+  }
+
+  // For non-Arc chains, use simple approach
   return createAdapterFromProvider({
     provider: eip1193Provider,
   });
@@ -250,7 +300,11 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
     }
 
     console.log("Creating Viem adapter for Circle Bridge Kit...");
-    const adapter = await createViemAdapter(eip1193Provider);
+    const adapter = await createViemAdapter(
+      eip1193Provider,
+      sourceChain.chainId,
+      destinationChain.chainId
+    );
     console.log("Viem adapter created");
 
     // Helper function to update bridge progress

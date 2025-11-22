@@ -5,8 +5,7 @@ import { WagmiProvider, createConfig } from "@privy-io/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useEffect, useState } from "react";
 import { http } from "viem";
-import { sepolia, baseSepolia, arbitrumSepolia } from "viem/chains";
-import { arcTestnet } from "../lib/chains";
+import { sepolia, baseSepolia, arbitrumSepolia, arcTestnet } from "viem/chains";
 
 interface PrivyProviderWrapperProps {
   children: ReactNode;
@@ -153,6 +152,10 @@ export default function PrivyProviderWrapper({
           },
           showWalletUIs: true,
         },
+        // Configure supported chains for Privy (required for custom chains like Arc Testnet)
+        // This ensures Privy's embedded wallets recognize and can switch to these chains
+        defaultChain: sepolia, // Default to Ethereum Sepolia
+        supportedChains: [sepolia, baseSepolia, arbitrumSepolia, arcTestnet],
       }}
     >
       <QueryClientProvider client={queryClient}>

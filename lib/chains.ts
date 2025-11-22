@@ -69,7 +69,7 @@ export const ARC_CHAIN: ChainConfig = {
     process.env.NEXT_PUBLIC_ARC_USDC_ADDRESS ??
     "0x3600000000000000000000000000000000000000",
   blockExplorer: "https://testnet.arcscan.app",
-  bridgeKitChainName: "Arc_Testnet", // Circle Bridge Kit chain identifier - follows pattern: ChainName_NetworkName
+  bridgeKitChainName: "Arc_Testnet",
 };
 
 export const SUPPORTED_CHAINS = [
