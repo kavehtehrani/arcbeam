@@ -1,8 +1,6 @@
 # ArcBeam
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.0-black?logo=next.js)
-![React](https://img.shields.io/badge/React-19.2-blue?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38bdf8?logo=tailwind-css)
 ![Privy](https://img.shields.io/badge/Privy-3.7-6366f1)
 ![Circle Bridge Kit](https://img.shields.io/badge/Circle_Bridge_Kit-1.1-000000?logo=circle)
@@ -14,7 +12,7 @@
 
 **Send USDC to anyone, anywhere. No native token needed!**
 
-ArcBeam is a cross-chain USDC bridge application that enables seamless transfers of USDC between multiple blockchain networks without requiring users to hold native tokens for gas fees. ArcBeam leverages Circle's Bridge Kit, Privy's embedded wallet with gas sponsorship, and EIP-7702 authorization to deliver a frictionless cross-chain payment experience where no native token is needed. USDC is all you'll need!
+ArcBeam is a cross-chain USDC payment application that enables seamless transfers of USDC between multiple blockchain networks without requiring users to hold native tokens for gas fees. ArcBeam leverages Circle's Bridge Kit, Privy's embedded wallet with gas sponsorship, and EIP-7702 authorization to deliver a frictionless cross-chain payment experience where no native token is needed. USDC is all you'll need!
 
 [//]: # (![screenshot-send]&#40;public/screenshots/screenshot-app.png&#41;)
 
@@ -24,7 +22,7 @@ ArcBeam is a cross-chain USDC bridge application that enables seamless transfers
 
 ## Features
 
-- **Gasless Cross-Chain Transfers**: Bridge USDC across chains without holding native tokens, powered by Privy's native gas sponsorship
+- **Gasless Cross-Chain Transfers**: Bridge USDC across chains without holding native tokens, powered by Privy + Pimlico gas sponsorship
 - **Multi-Chain Support**: Transfer USDC between Arc Testnet, Ethereum Sepolia, Base Sepolia, Arbitrum Sepolia, Optimism Sepolia, Polygon Amoy, Ink Testnet, and more
 - **Embedded Wallet**: Automatic wallet creation via Privy with no popups or external wallet requirements
 - **EIP-7702 Support**: Advanced transaction authorization for enhanced gasless operations
@@ -34,7 +32,7 @@ ArcBeam is a cross-chain USDC bridge application that enables seamless transfers
 
 ## How It Works
 
-ArcBeam uses Circle's Cross-Chain Transfer Protocol (CCTP) via the Bridge Kit to enable secure USDC transfers:
+ArcBeam uses Circle's [Cross-Chain Transfer Protocol (CCTP)](https://developers.circle.com/cctp#fast-and-secure-crosschain-rebalancing) via the Bridge Kit to enable secure USDC transfers:
 
 1. **User initiates transfer**: Select amount, source chain, and destination chain
 2. **Gasless approval**: Privy sponsors the gas for token approval (if needed)
@@ -46,18 +44,12 @@ The entire process is gasless for users thanks to Privy's embedded wallet and ga
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 16, Tailwind CSS
 - **Wallet & Auth**: Privy (embedded wallet, gas sponsorship)
 - **Blockchain**: viem, wagmi, ethers.js
 - **Bridge Protocol**: Circle Bridge Kit (CCTP)
-- **Advanced Features**: EIP-7702 authorization, Permissionless.js
 
 ## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm, yarn, pnpm, or bun
 
 ### Installation
 
