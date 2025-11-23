@@ -8,17 +8,14 @@
 ![wagmi](https://img.shields.io/badge/wagmi-2.19-6366f1)
 ![EIP-7702](https://img.shields.io/badge/EIP--7702-Enabled-ff6b6b)
 
-[//]: # (<img src="public/logo.png" alt="ArcBeam Logo" width="250" />)
+<img src="public/logo.png" alt="ArcBeam Logo" width="250" />
 
 **Send USDC to anyone, anywhere. No native token needed!**
 
 ArcBeam is a cross-chain USDC payment application that enables seamless transfers of USDC between multiple blockchain networks without requiring users to hold native tokens for gas fees. ArcBeam leverages Circle's Bridge Kit, Privy's embedded wallet with gas sponsorship, and EIP-7702 authorization to deliver a frictionless cross-chain payment experience where no native token is needed. USDC is all you'll need!
 
-[//]: # (![screenshot-send]&#40;public/screenshots/screenshot-app.png&#41;)
-
-[//]: # (![screenshot-send]&#40;public/screenshots/screenshot-send.png&#41;)
-
-[//]: # (![screenshot-receive]&#40;public/screenshots/screenshot-receive.png&#41;)
+![screenshot-send](public/screenshots/screenshot-send.png)
+![screenshot-receive](public/screenshots/screenshot-receive-qr.png)
 
 ## Features
 
@@ -94,6 +91,26 @@ More chains can be added as long as they're supported by [CCTP](https://develope
 - [Privy Documentation](https://docs.privy.io)
 - [EIP-7702 Specification](https://eips.ethereum.org/EIPS/eip-7702)
 - [CCTP Supported Chains](https://developers.circle.com/cctp/cctp-supported-blockchains)
+
+## ETHGlobal Submission Description
+
+ArcBeam is a cross-chain USDC payment app that solves the biggest friction point in multi-chain payments: needing native tokens for gas. I built it using Circle's Bridge Kit for secure USDC transfers via CCTP, Privy's embedded wallet system for seamless onboarding, and Pimlico's gas sponsorship so users never need ETH, MATIC, or any other native token. The whole flow is gasless - you just need USDC.
+
+Here's what makes it work: when you want to send USDC from Arc to Base (or any supported chain), the app handles everything. Privy creates an embedded wallet automatically (no MetaMask popups), sponsors the gas for token approvals and bridge transactions through Pimlico, and Circle's CCTP protocol burns USDC on the source chain and mints it on the destination. I also integrated EIP-7702 authorization for more advanced gasless operations.
+
+Beyond basic bridging, I added payment requests - you can generate shareable links or QR codes to request USDC on any chain. There's a unified balance viewer to see your USDC across all chains, and real-time progress tracking so you know exactly what's happening during each bridge step. The goal is making cross-chain payments as simple as sending a Venmo request - no crypto knowledge required, just login and go.
+
+## Technical Implementation
+
+The stack is Next.js 16 with TypeScript on the frontend, using Privy for embedded wallet creation and authentication. Circle's Bridge Kit handles the actual CCTP bridging logic - it's a clean abstraction over their TokenMessenger contracts that burn USDC on source chains and mint on destinations. The tricky part was making everything gasless.
+
+Here's how I wired it together: Privy provides an EIP-1193 provider from their embedded wallet, which I wrap with custom transaction wrappers. The EIP-7702 wrapper intercepts `eth_sendTransaction` calls and detects transaction types by function selectors (0x095ea7b3 for approvals, 0xd0d4229a for burns, etc.). When gas sponsorship is enabled, it converts these regular transactions into EIP-7702 UserOperations by signing an authorization for a Simple Account contract, then routing through Pimlico's paymaster with sponsorship policies.
+
+The hackiest part is the provider wrapping chain. Circle Bridge Kit expects a standard EIP-1193 provider, but I needed to inject gas sponsorship transparently. So I created two wrapper layers: `PrivyTransactionWrapper` for basic Privy gas sponsorship, and `EIP7702TransactionWrapper` that sits on top and converts transactions to UserOperations when EIP-7702 is supported. The wrapper caches smart account clients per chain to avoid recreating them, and handles conditional sponsorship logic for Arc Testnet (only sponsors mint when Arc is source, only sponsors approval/burn when Arc is destination).
+
+For the bridge flow itself, I use viem and wagmi for chain interactions, with ethers.js for contract calls since Circle's Bridge Kit uses ethers internally. The Bridge Kit's adapter system needed custom configuration for Arc Testnet's RPC, so I built a custom `getPublicClient` function that handles Arc's specific chain config. Payment requests use URL parameters to encode recipient, chain, and amount, with QR code generation via qrcode.react. Balance fetching happens in parallel across all chains using Promise.all, with error handling that gracefully degrades if a chain is unavailable.
+
+Partner tech benefits: Privy's embedded wallet means zero wallet setup friction - users just login with email/social. Pimlico's sponsorship policies let me sponsor gas without managing paymaster contracts. Circle's Bridge Kit abstracts away all the CCTP complexity (attestation waiting, message passing) into a simple bridge() call. EIP-7702 is the secret sauce - it lets me turn regular EOAs into smart accounts temporarily via authorization signatures, so I can use account abstraction features without deploying contracts.
 
 ## License
 
