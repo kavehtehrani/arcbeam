@@ -25,7 +25,8 @@ import {
   ARBITRUM_SEPOLIA_CHAIN,
   OP_SEPOLIA_CHAIN,
   POLYGON_AMOY_CHAIN,
-  LINEA_SEPOLIA_CHAIN,
+  INK_TESTNET_CHAIN,
+  AVALANCHE_FUJI_CHAIN,
   ARC_CHAIN,
 } from "./chains";
 
@@ -295,7 +296,7 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
         state: "error",
         error:
           `Bridge not supported: ${sourceChain.name} → ${destinationChain.name}. ` +
-          `Please use Arc Testnet, Sepolia, Base Sepolia, Arbitrum Sepolia, OP Sepolia, or Linea Sepolia.`,
+          `Please use Arc Testnet, Sepolia, Base Sepolia, Arbitrum Sepolia, OP Sepolia, Polygon Amoy, Ink Testnet, or Avalanche Fuji.`,
       };
     }
 
@@ -368,7 +369,8 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
       421614: "Arbitrum_Sepolia",
       11155420: "Optimism_Sepolia",
       80002: "Polygon_Amoy_Testnet",
-      59141: "Linea_Sepolia",
+      763373: "Ink_Testnet",
+      43113: "Avalanche_Fuji",
       5042002: "Arc_Testnet",
     };
 

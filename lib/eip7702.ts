@@ -10,7 +10,7 @@ import {
   arbitrumSepolia,
   optimismSepolia,
   polygonAmoy,
-  lineaSepolia,
+  inkSepolia,
   avalancheFuji,
   unichainSepolia,
   plumeTestnet,
@@ -27,13 +27,12 @@ import {
   BASE_SEPOLIA_CHAIN,
   ARBITRUM_SEPOLIA_CHAIN,
   OP_SEPOLIA_CHAIN,
-  LINEA_SEPOLIA_CHAIN,
   POLYGON_AMOY_CHAIN,
+  INK_TESTNET_CHAIN,
   AVALANCHE_FUJI_CHAIN,
   UNICHAIN_SEPOLIA_CHAIN,
   PLUME_TESTNET_CHAIN,
   SEI_TESTNET_CHAIN,
-  MONAD_TESTNET_CHAIN,
 } from "./chains";
 
 // Simple Account implementation addresses for different chains
@@ -50,12 +49,12 @@ const SIMPLE_ACCOUNT_ADDRESSES: Record<number, string> = {
   [ARBITRUM_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [OP_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [POLYGON_AMOY_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
-  [LINEA_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [POLYGON_AMOY_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [INK_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [AVALANCHE_FUJI_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [UNICHAIN_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [PLUME_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [SEI_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
-  [MONAD_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   // Arc Testnet (5042002) is not listed here but supports conditional sponsorship
 };
 
@@ -68,14 +67,13 @@ function getViemChain(chainConfig: ChainConfig): Chain {
     return arbitrumSepolia;
   if (chainConfig.chainId === OP_SEPOLIA_CHAIN.chainId) return optimismSepolia;
   if (chainConfig.chainId === POLYGON_AMOY_CHAIN.chainId) return polygonAmoy;
-  if (chainConfig.chainId === LINEA_SEPOLIA_CHAIN.chainId) return lineaSepolia;
+  if (chainConfig.chainId === INK_TESTNET_CHAIN.chainId) return inkSepolia;
   if (chainConfig.chainId === AVALANCHE_FUJI_CHAIN.chainId)
     return avalancheFuji;
   if (chainConfig.chainId === UNICHAIN_SEPOLIA_CHAIN.chainId)
     return unichainSepolia;
   if (chainConfig.chainId === PLUME_TESTNET_CHAIN.chainId) return plumeTestnet;
   if (chainConfig.chainId === SEI_TESTNET_CHAIN.chainId) return seiTestnet;
-  if (chainConfig.chainId === MONAD_TESTNET_CHAIN.chainId) return monadTestnet;
 
   // For unsupported chains, return sepolia as fallback
   return sepolia;

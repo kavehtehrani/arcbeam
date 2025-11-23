@@ -9,12 +9,11 @@ import {
   arbitrumSepolia,
   optimismSepolia,
   polygonAmoy,
-  lineaSepolia,
+  inkSepolia,
   avalancheFuji,
   unichainSepolia,
   plumeTestnet,
   seiTestnet,
-  monadTestnet,
   arcTestnet,
 } from "viem/chains";
 import { getUsdcAddressByChainId } from "./circleUsdcAddresses";
@@ -26,12 +25,11 @@ const BRIDGE_KIT_CHAIN_NAMES: Record<number, string> = {
   421614: "Arbitrum_Sepolia",
   11155420: "Optimism_Sepolia",
   80002: "Polygon_Amoy_Testnet",
-  59141: "Linea_Sepolia",
+  763373: "Ink_Testnet",
   43113: "Avalanche_Fuji",
   1301: "Unichain_Sepolia",
   98867: "Plume_Testnet",
   1328: "Sei_Testnet",
-  10143: "Monad_Testnet",
   5042002: "Arc_Testnet",
 };
 
@@ -67,17 +65,11 @@ export const BASE_SEPOLIA_CHAIN = createChainConfig(baseSepolia);
 export const ARBITRUM_SEPOLIA_CHAIN = createChainConfig(arbitrumSepolia);
 export const OP_SEPOLIA_CHAIN = createChainConfig(optimismSepolia);
 export const POLYGON_AMOY_CHAIN = createChainConfig(polygonAmoy);
-// Override name for Linea Sepolia to match expected format
-// Use same approach as other chains - no special RPC handling
-export const LINEA_SEPOLIA_CHAIN = {
-  ...createChainConfig(lineaSepolia),
-  name: "Linea Sepolia",
-};
+export const INK_TESTNET_CHAIN = createChainConfig(inkSepolia);
 export const AVALANCHE_FUJI_CHAIN = createChainConfig(avalancheFuji);
 export const UNICHAIN_SEPOLIA_CHAIN = createChainConfig(unichainSepolia);
 export const PLUME_TESTNET_CHAIN = createChainConfig(plumeTestnet);
 export const SEI_TESTNET_CHAIN = createChainConfig(seiTestnet);
-export const MONAD_TESTNET_CHAIN = createChainConfig(monadTestnet);
 export const ARC_CHAIN = createChainConfig(arcTestnet);
 
 // All supported chains
@@ -88,12 +80,11 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   ARBITRUM_SEPOLIA_CHAIN,
   OP_SEPOLIA_CHAIN,
   POLYGON_AMOY_CHAIN,
-  LINEA_SEPOLIA_CHAIN,
+  INK_TESTNET_CHAIN,
   AVALANCHE_FUJI_CHAIN,
   UNICHAIN_SEPOLIA_CHAIN,
   PLUME_TESTNET_CHAIN,
   SEI_TESTNET_CHAIN,
-  MONAD_TESTNET_CHAIN,
 ];
 
 export function getChainById(chainId: number): ChainConfig | undefined {
@@ -115,11 +106,10 @@ export {
   arbitrumSepolia,
   optimismSepolia,
   polygonAmoy,
-  lineaSepolia,
+  inkSepolia,
   avalancheFuji,
   unichainSepolia,
   plumeTestnet,
   seiTestnet,
-  monadTestnet,
   arcTestnet,
 };

@@ -10,6 +10,8 @@ import {
   ARBITRUM_SEPOLIA_CHAIN,
   OP_SEPOLIA_CHAIN,
   POLYGON_AMOY_CHAIN,
+  INK_TESTNET_CHAIN,
+  AVALANCHE_FUJI_CHAIN,
 } from "@/lib/chains";
 import { getChainLogoPath } from "@/lib/chainLogos";
 import Image from "next/image";
@@ -28,6 +30,8 @@ export default function BalanceViewer() {
     arbitrumSepolia: ChainBalances;
     opSepolia: ChainBalances;
     polygonAmoy: ChainBalances;
+    inkTestnet: ChainBalances;
+    avalancheFuji: ChainBalances;
     arc: ChainBalances;
   }>({
     sepolia: { usdc: "0", eth: "0" },
@@ -35,6 +39,8 @@ export default function BalanceViewer() {
     arbitrumSepolia: { usdc: "0", eth: "0" },
     opSepolia: { usdc: "0", eth: "0" },
     polygonAmoy: { usdc: "0", eth: "0" },
+    inkTestnet: { usdc: "0", eth: "0" },
+    avalancheFuji: { usdc: "0", eth: "0" },
     arc: { usdc: "0", eth: "0" },
   });
   const [loading, setLoading] = useState(true);
@@ -61,6 +67,8 @@ export default function BalanceViewer() {
           arbitrumSepolia: { usdc: "0", eth: "0" },
           opSepolia: { usdc: "0", eth: "0" },
           polygonAmoy: { usdc: "0", eth: "0" },
+          inkTestnet: { usdc: "0", eth: "0" },
+          avalancheFuji: { usdc: "0", eth: "0" },
           arc: { usdc: "0", eth: "0" },
         });
         setLoading(false);
@@ -99,6 +107,10 @@ export default function BalanceViewer() {
           opSepoliaETH,
           polygonAmoyUSDC,
           polygonAmoyETH,
+          inkTestnetUSDC,
+          inkTestnetETH,
+          avalancheFujiUSDC,
+          avalancheFujiETH,
         ] = await Promise.all([
           getUSDCBalance(walletAddress, ARC_CHAIN, ARC_CHAIN.rpcUrl),
           getUSDCBalance(
@@ -151,6 +163,26 @@ export default function BalanceViewer() {
             POLYGON_AMOY_CHAIN,
             POLYGON_AMOY_CHAIN.rpcUrl
           ),
+          getUSDCBalance(
+            walletAddress,
+            INK_TESTNET_CHAIN,
+            INK_TESTNET_CHAIN.rpcUrl
+          ),
+          getETHBalance(
+            walletAddress,
+            INK_TESTNET_CHAIN,
+            INK_TESTNET_CHAIN.rpcUrl
+          ),
+          getUSDCBalance(
+            walletAddress,
+            AVALANCHE_FUJI_CHAIN,
+            AVALANCHE_FUJI_CHAIN.rpcUrl
+          ),
+          getETHBalance(
+            walletAddress,
+            AVALANCHE_FUJI_CHAIN,
+            AVALANCHE_FUJI_CHAIN.rpcUrl
+          ),
         ]);
 
         setBalances({
@@ -178,6 +210,14 @@ export default function BalanceViewer() {
             usdc: polygonAmoyUSDC,
             eth: polygonAmoyETH,
           },
+          inkTestnet: {
+            usdc: inkTestnetUSDC,
+            eth: inkTestnetETH,
+          },
+          avalancheFuji: {
+            usdc: avalancheFujiUSDC,
+            eth: avalancheFujiETH,
+          },
         });
         hasFetchedRef.current = true;
         console.log("Balances fetched successfully:", {
@@ -201,6 +241,14 @@ export default function BalanceViewer() {
           polygonAmoy: {
             usdc: polygonAmoyUSDC,
             eth: polygonAmoyETH,
+          },
+          inkTestnet: {
+            usdc: inkTestnetUSDC,
+            eth: inkTestnetETH,
+          },
+          avalancheFuji: {
+            usdc: avalancheFujiUSDC,
+            eth: avalancheFujiETH,
           },
           walletAddress,
         });
@@ -243,6 +291,8 @@ export default function BalanceViewer() {
         arbitrumSepolia: { usdc: "0", eth: "0" },
         opSepolia: { usdc: "0", eth: "0" },
         polygonAmoy: { usdc: "0", eth: "0" },
+        inkTestnet: { usdc: "0", eth: "0" },
+        avalancheFuji: { usdc: "0", eth: "0" },
         arc: { usdc: "0", eth: "0" },
       });
       setLoading(false);

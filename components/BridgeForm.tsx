@@ -29,7 +29,8 @@ import {
   ARBITRUM_SEPOLIA_CHAIN,
   OP_SEPOLIA_CHAIN,
   POLYGON_AMOY_CHAIN,
-  LINEA_SEPOLIA_CHAIN,
+  INK_TESTNET_CHAIN,
+  AVALANCHE_FUJI_CHAIN,
   ChainConfig,
 } from "@/lib/chains";
 
@@ -60,7 +61,8 @@ export default function BridgeForm() {
   const [arbitrumSepoliaBalance, setArbitrumSepoliaBalance] = useState("0");
   const [opSepoliaBalance, setOpSepoliaBalance] = useState("0");
   const [polygonAmoyBalance, setPolygonAmoyBalance] = useState("0");
-  const [lineaSepoliaBalance, setLineaSepoliaBalance] = useState("0");
+  const [inkTestnetBalance, setInkTestnetBalance] = useState("0");
+  const [avalancheFujiBalance, setAvalancheFujiBalance] = useState("0");
   const [arcBalance, setArcBalance] = useState("0");
   const [currentAllowance, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
@@ -178,7 +180,8 @@ export default function BridgeForm() {
         arbitrumSepoliaBal,
         opSepoliaBal,
         polygonAmoyBal,
-        lineaSepoliaBal,
+        inkTestnetBal,
+        avalancheFujiBal,
         arcBal,
       ] = await Promise.all([
         getUSDCBalance(
@@ -208,8 +211,13 @@ export default function BridgeForm() {
         ),
         getUSDCBalance(
           wallet.address,
-          LINEA_SEPOLIA_CHAIN,
-          LINEA_SEPOLIA_CHAIN.rpcUrl
+          INK_TESTNET_CHAIN,
+          INK_TESTNET_CHAIN.rpcUrl
+        ),
+        getUSDCBalance(
+          wallet.address,
+          AVALANCHE_FUJI_CHAIN,
+          AVALANCHE_FUJI_CHAIN.rpcUrl
         ),
         getUSDCBalance(wallet.address, ARC_CHAIN, ARC_CHAIN.rpcUrl),
       ]);
@@ -218,7 +226,8 @@ export default function BridgeForm() {
       setArbitrumSepoliaBalance(arbitrumSepoliaBal);
       setOpSepoliaBalance(opSepoliaBal);
       setPolygonAmoyBalance(polygonAmoyBal);
-      setLineaSepoliaBalance(lineaSepoliaBal);
+      setInkTestnetBalance(inkTestnetBal);
+      setAvalancheFujiBalance(avalancheFujiBal);
       setArcBalance(arcBal);
 
       if (spenderAddress && sourceChain) {
@@ -251,8 +260,10 @@ export default function BridgeForm() {
       return opSepoliaBalance;
     } else if (sourceChain.chainId === POLYGON_AMOY_CHAIN.chainId) {
       return polygonAmoyBalance;
-    } else if (sourceChain.chainId === LINEA_SEPOLIA_CHAIN.chainId) {
-      return lineaSepoliaBalance;
+    } else if (sourceChain.chainId === INK_TESTNET_CHAIN.chainId) {
+      return inkTestnetBalance;
+    } else if (sourceChain.chainId === AVALANCHE_FUJI_CHAIN.chainId) {
+      return avalancheFujiBalance;
     } else if (sourceChain.chainId === ARC_CHAIN.chainId) {
       return arcBalance;
     }
@@ -766,7 +777,9 @@ export default function BridgeForm() {
                       setDestinationChain(ARC_CHAIN);
                     } else if (chain.chainId === POLYGON_AMOY_CHAIN.chainId) {
                       setDestinationChain(ARC_CHAIN);
-                    } else if (chain.chainId === LINEA_SEPOLIA_CHAIN.chainId) {
+                    } else if (chain.chainId === INK_TESTNET_CHAIN.chainId) {
+                      setDestinationChain(ARC_CHAIN);
+                    } else if (chain.chainId === AVALANCHE_FUJI_CHAIN.chainId) {
                       setDestinationChain(ARC_CHAIN);
                     } else {
                       setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
@@ -780,7 +793,8 @@ export default function BridgeForm() {
                   ARBITRUM_SEPOLIA_CHAIN,
                   OP_SEPOLIA_CHAIN,
                   POLYGON_AMOY_CHAIN,
-                  LINEA_SEPOLIA_CHAIN,
+                  INK_TESTNET_CHAIN,
+                  AVALANCHE_FUJI_CHAIN,
                 ]}
                 disabled={status === "bridging" || status === "approving"}
               />
@@ -818,7 +832,8 @@ export default function BridgeForm() {
                   ARBITRUM_SEPOLIA_CHAIN,
                   OP_SEPOLIA_CHAIN,
                   POLYGON_AMOY_CHAIN,
-                  LINEA_SEPOLIA_CHAIN,
+                  INK_TESTNET_CHAIN,
+                  AVALANCHE_FUJI_CHAIN,
                 ].filter((chain) => chain.chainId !== sourceChain.chainId)}
                 disabled={status === "bridging" || status === "approving"}
               />
