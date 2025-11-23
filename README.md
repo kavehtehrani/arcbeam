@@ -1,5 +1,3 @@
-# ArcBeam
-
 ![Next.js](https://img.shields.io/badge/Next.js-16.0-black?logo=next.js)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38bdf8?logo=tailwind-css)
 ![Privy](https://img.shields.io/badge/Privy-3.7-6366f1)
@@ -7,6 +5,8 @@
 ![viem](https://img.shields.io/badge/viem-2.39-6366f1)
 ![wagmi](https://img.shields.io/badge/wagmi-2.19-6366f1)
 ![EIP-7702](https://img.shields.io/badge/EIP--7702-Enabled-ff6b6b)
+
+# ArcBeam
 
 [//]: # (<img src="public/logo.png" alt="ArcBeam Logo" width="250" />)
 
