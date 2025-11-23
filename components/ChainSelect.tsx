@@ -55,21 +55,21 @@ export default function ChainSelect({
         disabled={disabled}
         className="w-full min-w-0 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-left text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-50 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-gray-400 dark:disabled:bg-gray-800"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {selectedLogoPath ? (
             <Image
               src={selectedLogoPath}
               alt={value.name}
               width={20}
               height={20}
-              className="rounded-full"
+              className="rounded-full shrink-0"
             />
           ) : (
-            <div className="h-5 w-5 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+            <div className="h-5 w-5 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0"></div>
           )}
-          <span className="flex-1">{value.name}</span>
+          <span className="flex-1 truncate min-w-0">{value.name}</span>
           <svg
-            className={`h-4 w-4 transition-transform ${
+            className={`h-4 w-4 transition-transform shrink-0 ${
               isOpen ? "rotate-180" : ""
             }`}
             fill="none"

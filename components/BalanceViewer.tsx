@@ -501,7 +501,7 @@ export default function BalanceViewer() {
               return (
                 <div
                   key={`${network.chain}-${index}`}
-                  className="flex min-h-[140px] flex-col rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50"
+                  className="flex min-h-[100px] flex-col rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50"
                 >
                   {/* Card Header */}
                   <div className="flex min-h-[3.5rem] items-center border-b border-gray-200 px-4 py-3 dark:border-gray-600">
@@ -523,21 +523,24 @@ export default function BalanceViewer() {
                     </div>
                   </div>
                   {/* Balances Section */}
-                  <div className="flex flex-1 flex-col space-y-3 p-4">
+                  <div className="flex flex-1 flex-col space-y-2 p-4">
                     {nonZeroTokens.length === 0 && !loading ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         No balances
                       </p>
                     ) : (
                       nonZeroTokens.map((token) => (
-                        <div key={token.symbol} className="flex-shrink-0">
-                          <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <div
+                          key={token.symbol}
+                          className="flex items-center justify-between gap-2 flex-shrink-0"
+                        >
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
                             {token.symbol}
                           </p>
                           {loading ? (
-                            <div className="h-6 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
+                            <div className="h-5 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
                           ) : (
-                            <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                            <p className="text-base md:text-lg font-semibold text-gray-900 dark:text-white text-right whitespace-nowrap">
                               {(() => {
                                 // Parse the balance string directly to avoid precision issues
                                 const balanceStr = String(token.balance).trim();
