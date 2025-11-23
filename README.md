@@ -10,15 +10,17 @@
 ![wagmi](https://img.shields.io/badge/wagmi-2.19-6366f1)
 ![EIP-7702](https://img.shields.io/badge/EIP--7702-Enabled-ff6b6b)
 
-<img src="public/logo.png" alt="ArcBeam Logo" width="250" />
+[//]: # (<img src="public/logo.png" alt="ArcBeam Logo" width="250" />)
 
 **Send USDC to anyone, anywhere. No native token needed!**
 
 ArcBeam is a cross-chain USDC bridge application that enables seamless transfers of USDC between multiple blockchain networks without requiring users to hold native tokens for gas fees. ArcBeam leverages Circle's Bridge Kit, Privy's embedded wallet with gas sponsorship, and EIP-7702 authorization to deliver a frictionless cross-chain payment experience where no native token is needed. USDC is all you'll need!
 
-![screenshot-send](public/screenshots/screenshot-app.png)
-![screenshot-send](public/screenshots/screenshot-send.png)
-![screenshot-receive](public/screenshots/screenshot-receive.png)
+[//]: # (![screenshot-send]&#40;public/screenshots/screenshot-app.png&#41;)
+
+[//]: # (![screenshot-send]&#40;public/screenshots/screenshot-send.png&#41;)
+
+[//]: # (![screenshot-receive]&#40;public/screenshots/screenshot-receive.png&#41;)
 
 ## Features
 
