@@ -48,7 +48,7 @@ export function createPrivyTransactionWrapper(
                 ],
               });
               return await originalProvider.request(args);
-            } catch (addError) {
+            } catch {
               throw error;
             }
           }

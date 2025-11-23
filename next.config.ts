@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config) => {
     // Ignore the problematic dev dependency that's only used in test files
     config.plugins = config.plugins || [];
     config.plugins.push(

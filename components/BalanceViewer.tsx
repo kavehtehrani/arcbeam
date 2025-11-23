@@ -196,7 +196,7 @@ export default function BalanceViewer() {
         fetchingRef.current = false;
       }
     },
-    [walletAddress, embeddedWallet, wallets]
+    [walletAddress, embeddedWallet]
   );
 
   useEffect(() => {
