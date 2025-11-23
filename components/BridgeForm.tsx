@@ -919,7 +919,7 @@ export default function BridgeForm() {
       }
     } else {
       if (isEIP7702Supported(sourceChain.chainId)) {
-        return "Send transactions without gas fees. Gas will be sponsored by Pimlico.";
+        return "Send transactions without gas fees. Gas will be sponsored by us.";
       } else {
         return `Not supported on ${sourceChain.name}.`;
       }
@@ -1341,8 +1341,8 @@ export default function BridgeForm() {
                             } else {
                               return (
                                 <p>
-                                  Gas fees will be sponsored by Pimlico. You can
-                                  bridge USDC even if you have no gas tokens on{" "}
+                                  Gas fees will be sponsored by us. You can
+                                  send USDC even if you have no gas tokens on{" "}
                                   {sourceChain.name}.
                                 </p>
                               );
