@@ -82,9 +82,11 @@ export default function BridgeForm() {
   const [receiveAmount, setReceiveAmount] = useState("");
   const [receiveRecipient, setReceiveRecipient] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedQR, setCopiedQR] = useState(false);
   const [paymentLinkDetected, setPaymentLinkDetected] = useState(false);
   const isBridgingRef = useRef(false);
   const hasSetActiveWalletRef = useRef(false);
+  const qrCodeRef = useRef<SVGSVGElement>(null);
 
   // Only use Privy embedded wallet - ignore external wallets like MetaMask
   const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
@@ -817,6 +819,49 @@ export default function BridgeForm() {
     }
   };
 
+  const copyQRCodeAsImage = async () => {
+    if (!qrCodeRef.current) return;
+    try {
+      const svg = qrCodeRef.current;
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const img = document.createElement("img");
+
+      const svgBlob = new Blob([svgData], {
+        type: "image/svg+xml;charset=utf-8",
+      });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = async () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+              ]);
+              setCopiedQR(true);
+              setTimeout(() => setCopiedQR(false), 2000);
+            } catch (err) {
+              console.error("Failed to copy image:", err);
+            }
+          }
+        }, "image/png");
+      };
+
+      img.src = url;
+    } catch (err) {
+      console.error("Failed to copy QR code:", err);
+    }
+  };
+
   if (!ready || !authenticated) {
     return (
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -853,12 +898,33 @@ export default function BridgeForm() {
           >
             <button
               onClick={() => setIsReceiveMode(true)}
-              className="w-full bg-arcbeam-blue-gradient px-6 py-4 dark:bg-arcbeam-blue-gradient min-h-[4.5rem] flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+              className="w-full bg-arcbeam-blue-gradient px-6 py-4 dark:bg-arcbeam-blue-gradient min-h-[4.5rem] flex items-center cursor-pointer hover:opacity-90 transition-all group relative"
+              title="Click to switch to Receive mode"
             >
               <div className="flex items-center justify-between w-full">
-                <h2 className="text-lg font-semibold text-white whitespace-nowrap">
-                  Send USDC
-                </h2>
+                <div className="flex flex-col items-start">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-white whitespace-nowrap transition-transform group-hover:scale-105">
+                      Send USDC
+                    </h2>
+                    <svg
+                      className="h-4 w-4 text-white/70 group-hover:text-white transition-transform group-hover:translate-x-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                  <div className="text-xs text-white/60 group-hover:text-white/80 transition-opacity mt-0.5">
+                    Click to receive
+                  </div>
+                </div>
                 <div className="flex items-center justify-center rounded-full bg-white shadow-lg">
                   <Image
                     src="/logos/usd-coin-usdc-logo.svg"
@@ -990,54 +1056,41 @@ export default function BridgeForm() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Recipient Address (Optional)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={recipientAddress}
-                      onChange={(e) => setRecipientAddress(e.target.value)}
-                      placeholder={
-                        wallet?.address || "Leave empty to send to your wallet"
-                      }
-                      className={`w-full rounded-lg border px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-1 disabled:bg-gray-50 disabled:text-gray-500 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:disabled:bg-gray-800 ${
-                        recipientAddress.trim() &&
-                        !isAddress(recipientAddress.trim())
-                          ? "border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500 dark:border-red-700 dark:bg-red-900/20"
-                          : recipientAddress.trim() &&
-                            isAddress(recipientAddress.trim())
-                          ? "border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500 dark:border-green-700 dark:bg-green-900/20"
-                          : "border-gray-300 bg-white focus:border-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:focus:border-gray-400"
-                      }`}
-                      disabled={status === "bridging" || status === "approving"}
-                    />
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden dark:border-gray-700 dark:bg-gray-700/50">
+                    <div className="flex items-stretch">
+                      <label className="flex items-center px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap border-r border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800">
+                        Recipient Address
+                      </label>
+                      <input
+                        type="text"
+                        value={recipientAddress}
+                        onChange={(e) => setRecipientAddress(e.target.value)}
+                        placeholder={
+                          wallet?.address ||
+                          "Leave empty to send to your wallet"
+                        }
+                        className={`flex-1 border-r border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none disabled:bg-gray-50 disabled:text-gray-500 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:disabled:bg-gray-800 ${
+                          recipientAddress.trim() &&
+                          !isAddress(recipientAddress.trim())
+                            ? "border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500 dark:border-red-700 dark:bg-red-900/20"
+                            : recipientAddress.trim() &&
+                              isAddress(recipientAddress.trim())
+                            ? "border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500 dark:border-green-700 dark:bg-green-900/20"
+                            : "border-gray-300 focus:border-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:focus:border-gray-400"
+                        }`}
+                        disabled={
+                          status === "bridging" || status === "approving"
+                        }
+                      />
+                    </div>
                     {recipientAddress.trim() &&
-                      isAddress(recipientAddress.trim()) && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <svg
-                            className="h-5 w-5 text-green-600 dark:text-green-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </div>
+                      !isAddress(recipientAddress.trim()) && (
+                        <p className="px-3 py-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20">
+                          Invalid Ethereum address format. Please enter a valid
+                          0x-prefixed address.
+                        </p>
                       )}
                   </div>
-                  {recipientAddress.trim() &&
-                    !isAddress(recipientAddress.trim()) && (
-                      <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
-                        Invalid Ethereum address format. Please enter a valid
-                        0x-prefixed address.
-                      </p>
-                    )}
                   {recipientAddress.trim() &&
                     isAddress(recipientAddress.trim()) && (
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -1331,12 +1384,33 @@ export default function BridgeForm() {
           >
             <button
               onClick={() => setIsReceiveMode(false)}
-              className="w-full bg-gradient-to-r from-green-600 to-green-500 px-6 py-4 dark:from-green-700 dark:to-green-600 min-h-[4.5rem] flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+              className="w-full bg-gradient-to-r from-green-600 to-green-500 px-6 py-4 dark:from-green-700 dark:to-green-600 min-h-[4.5rem] flex items-center cursor-pointer hover:opacity-90 transition-all group relative"
+              title="Click to switch to Send mode"
             >
               <div className="flex items-center justify-between w-full">
-                <h2 className="text-lg font-semibold text-white whitespace-nowrap">
-                  Receive USDC
-                </h2>
+                <div className="flex flex-col items-start">
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="h-4 w-4 text-white/70 group-hover:text-white transition-transform group-hover:-translate-x-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                    <h2 className="text-lg font-semibold text-white whitespace-nowrap transition-transform group-hover:scale-105">
+                      Receive USDC
+                    </h2>
+                  </div>
+                  <div className="text-xs text-white/60 group-hover:text-white/80 transition-opacity mt-0.5">
+                    Click to send
+                  </div>
+                </div>
                 <div className="flex items-center justify-center rounded-full bg-white shadow-lg">
                   <Image
                     src="/logos/usd-coin-usdc-logo.svg"
@@ -1380,107 +1454,157 @@ export default function BridgeForm() {
                 </div>
 
                 {/* Recipient Address Input */}
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Recipient Address (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={receiveRecipient}
-                    onChange={(e) => setReceiveRecipient(e.target.value)}
-                    placeholder={wallet?.address || "0x..."}
-                    className={`w-full rounded-lg border px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none focus:ring-1 disabled:bg-gray-50 disabled:text-gray-500 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:disabled:bg-gray-800 ${
-                      receiveRecipient.trim() &&
-                      !isAddress(receiveRecipient.trim())
-                        ? "border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500 dark:border-red-700 dark:bg-red-900/20"
-                        : receiveRecipient.trim() &&
-                          isAddress(receiveRecipient.trim())
-                        ? "border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500 dark:border-green-700 dark:bg-green-900/20"
-                        : "border-gray-300 bg-white focus:border-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:focus:border-gray-400"
-                    }`}
-                  />
-                  {receiveRecipient.trim() &&
-                    !isAddress(receiveRecipient.trim()) && (
-                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">
-                        Invalid address format
-                      </p>
-                    )}
+                <div className="mt-4">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden dark:border-gray-700 dark:bg-gray-700/50">
+                    <div className="flex items-stretch">
+                      <label className="flex items-center px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap border-r border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800">
+                        Recipient Address
+                      </label>
+                      <input
+                        type="text"
+                        value={receiveRecipient}
+                        onChange={(e) => setReceiveRecipient(e.target.value)}
+                        placeholder={wallet?.address || "0x..."}
+                        className={`flex-1 border-r border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 placeholder:text-gray-400 transition-colors focus:outline-none dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 ${
+                          receiveRecipient.trim() &&
+                          !isAddress(receiveRecipient.trim())
+                            ? "border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500 dark:border-red-700 dark:bg-red-900/20"
+                            : receiveRecipient.trim() &&
+                              isAddress(receiveRecipient.trim())
+                            ? "border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500 dark:border-green-700 dark:bg-green-900/20"
+                            : "border-gray-300 focus:border-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:focus:border-gray-400"
+                        }`}
+                      />
+                    </div>
+                    {receiveRecipient.trim() &&
+                      !isAddress(receiveRecipient.trim()) && (
+                        <p className="px-3 py-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20">
+                          Invalid address format
+                        </p>
+                      )}
+                  </div>
                 </div>
 
-                {/* Payment Link Display - Always visible when amount is entered */}
+                {/* Payment Link and QR Code Display - Always visible when amount is entered */}
                 {paymentRequestData && (
-                  <div className="mt-6 space-y-4">
-                    {/* Payment Link - Show first, most important */}
-                    <div>
-                      <div className="flex items-stretch">
-                        <label className="flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 dark:border-gray-600 dark:bg-gray-800">
-                          Payment Link
-                        </label>
-                        <input
-                          type="text"
-                          readOnly
-                          value={paymentLink}
-                          className="flex-1 border border-r-0 border-l-0 border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 truncate dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                          onClick={(e) =>
-                            (e.target as HTMLInputElement).select()
-                          }
-                        />
-                        <button
-                          onClick={() =>
-                            copyToClipboard(paymentLink, setCopiedLink)
-                          }
-                          className="flex items-center justify-center px-4 py-2.5 border border-l-0 border-gray-300 rounded-r-lg bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                          title="Copy payment link"
-                        >
-                          {copiedLink ? (
-                            <svg
-                              className="h-5 w-5 text-green-600"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          ) : (
-                            <svg
-                              className="h-5 w-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                              />
-                            </svg>
-                          )}
-                        </button>
+                  <div className="mt-4">
+                    <div className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-gray-50 overflow-hidden dark:border-gray-700 dark:bg-gray-700/50">
+                      {/* Payment Link - At the top, full width, no margins */}
+                      <div className="w-full border-b border-gray-300 dark:border-gray-600">
+                        <div className="flex items-stretch">
+                          <label className="flex items-center px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap border-r border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800">
+                            Payment Link
+                          </label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={paymentLink}
+                            className="flex-1 border-r border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-900 truncate dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            onClick={(e) =>
+                              (e.target as HTMLInputElement).select()
+                            }
+                          />
+                          <button
+                            onClick={() =>
+                              copyToClipboard(paymentLink, setCopiedLink)
+                            }
+                            className="flex items-center justify-center px-3 py-2 border-l border-gray-300 bg-white text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                            title="Copy payment link"
+                          >
+                            {copiedLink ? (
+                              <svg
+                                className="h-4 w-4 text-green-600"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* QR Code Display */}
-                    <div className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-700/50">
-                      <QRCodeSVG
-                        value={qrCodeData}
-                        size={200}
-                        level="M"
-                        includeMargin={true}
-                        className="rounded-lg"
-                      />
-                      <div className="mt-4 text-center">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          Scan to pay{" "}
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            • {receiveChain.name} • {receiveAmount} USDC
-                          </span>
-                        </p>
+                      {/* QR Code Display */}
+                      <div className="p-2 w-full flex flex-col items-center">
+                        <div className="relative">
+                          <QRCodeSVG
+                            ref={qrCodeRef}
+                            value={qrCodeData}
+                            size={180}
+                            level="M"
+                            includeMargin={true}
+                            className="rounded-lg"
+                          />
+                        </div>
+                        <div className="mt-3 w-full flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            Scan to pay{" "}
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              • {receiveChain.name} • {receiveAmount} USDC
+                            </span>
+                          </p>
+                          <button
+                            onClick={copyQRCodeAsImage}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 rounded-md dark:text-gray-200 dark:hover:bg-gray-600"
+                            title="Copy QR code as image"
+                          >
+                            {copiedQR ? (
+                              <>
+                                <svg
+                                  className="h-3.5 w-3.5 text-green-600"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                                <span className="text-green-600">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                <span>Copy QR</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

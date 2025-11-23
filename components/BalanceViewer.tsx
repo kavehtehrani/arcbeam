@@ -41,6 +41,7 @@ export default function BalanceViewer() {
     arc: { usdc: "0", eth: "0" },
   });
   const [loading, setLoading] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(true);
   const fetchingRef = useRef(false);
   const hasFetchedRef = useRef(false);
 
@@ -428,9 +429,29 @@ export default function BalanceViewer() {
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
       <div className="bg-arcbeam-light-blue-gradient px-6 py-4 dark:bg-arcbeam-light-blue-gradient min-h-[4.5rem]">
         <div className="flex items-center justify-between h-full">
-          <h2 className="text-lg font-semibold text-white whitespace-nowrap">
-            Balances
-          </h2>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-left hover:opacity-90 transition-all group"
+          >
+            <h2 className="text-lg font-semibold text-white whitespace-nowrap transition-transform group-hover:scale-105">
+              Balances
+            </h2>
+            <svg
+              className={`h-5 w-5 text-white transition-transform ${
+                isExpanded ? "rotate-180" : ""
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
           <button
             onClick={handleRefresh}
             disabled={loading}
@@ -480,130 +501,134 @@ export default function BalanceViewer() {
           </button>
         </div>
       </div>
-      <div className="p-6">
-        {networkItems.length === 0 && !loading ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No balances found. All balances are zero.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {networkItems.map((network, index) => {
-              // Filter out tokens with zero balance
-              const nonZeroTokens = network.tokens.filter((token) => {
-                const balanceStr = String(token.balance).trim();
-                if (!balanceStr || balanceStr === "0" || balanceStr === "") {
-                  return false;
-                }
-                const balanceNum = parseFloat(balanceStr);
-                return !isNaN(balanceNum) && balanceNum > 0;
-              });
+      {isExpanded && (
+        <div className="p-6">
+          {networkItems.length === 0 && !loading ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No balances found. All balances are zero.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+              {networkItems.map((network, index) => {
+                // Filter out tokens with zero balance
+                const nonZeroTokens = network.tokens.filter((token) => {
+                  const balanceStr = String(token.balance).trim();
+                  if (!balanceStr || balanceStr === "0" || balanceStr === "") {
+                    return false;
+                  }
+                  const balanceNum = parseFloat(balanceStr);
+                  return !isNaN(balanceNum) && balanceNum > 0;
+                });
 
-              return (
-                <div
-                  key={`${network.chain}-${index}`}
-                  className="flex min-h-[100px] flex-col rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50"
-                >
-                  {/* Card Header */}
-                  <div className="flex min-h-[3.5rem] items-center border-b border-gray-200 px-4 py-3 dark:border-gray-600">
-                    <div className="flex items-center gap-2">
-                      {network.logoPath ? (
-                        <Image
-                          src={network.logoPath}
-                          alt={network.chain}
-                          width={20}
-                          height={20}
-                          className="shrink-0 rounded-full"
-                        />
+                return (
+                  <div
+                    key={`${network.chain}-${index}`}
+                    className="flex min-h-[100px] flex-col rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50"
+                  >
+                    {/* Card Header */}
+                    <div className="flex min-h-[3.5rem] items-center border-b border-gray-200 px-4 py-3 dark:border-gray-600">
+                      <div className="flex items-center gap-2">
+                        {network.logoPath ? (
+                          <Image
+                            src={network.logoPath}
+                            alt={network.chain}
+                            width={20}
+                            height={20}
+                            className="shrink-0 rounded-full"
+                          />
+                        ) : (
+                          <div className="h-5 w-5 shrink-0 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                        )}
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
+                          {network.chain}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Balances Section */}
+                    <div className="flex flex-1 flex-col space-y-2 p-4">
+                      {nonZeroTokens.length === 0 && !loading ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          No balances
+                        </p>
                       ) : (
-                        <div className="h-5 w-5 shrink-0 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                        nonZeroTokens.map((token) => (
+                          <div
+                            key={token.symbol}
+                            className="flex items-center justify-between gap-2 flex-shrink-0"
+                          >
+                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                              {token.symbol}
+                            </p>
+                            {loading ? (
+                              <div className="h-5 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
+                            ) : (
+                              <p className="text-base md:text-lg font-semibold text-gray-900 dark:text-white text-right whitespace-nowrap">
+                                {(() => {
+                                  // Parse the balance string directly to avoid precision issues
+                                  const balanceStr = String(
+                                    token.balance
+                                  ).trim();
+
+                                  // Debug logging for Arc Testnet USDC
+                                  if (
+                                    token.symbol === "USDC" &&
+                                    network.chain === "Arc Testnet"
+                                  ) {
+                                    console.log("Arc USDC Balance Debug:", {
+                                      rawBalance: token.balance,
+                                      balanceStr,
+                                      balanceType: typeof token.balance,
+                                    });
+                                  }
+
+                                  if (
+                                    !balanceStr ||
+                                    balanceStr === "0" ||
+                                    balanceStr === ""
+                                  ) {
+                                    return "0.00";
+                                  }
+                                  const balanceNum = parseFloat(balanceStr);
+                                  if (isNaN(balanceNum)) {
+                                    console.warn(
+                                      `Invalid balance for ${token.symbol}:`,
+                                      token.balance,
+                                      "raw string:",
+                                      balanceStr
+                                    );
+                                    return "0.00";
+                                  }
+                                  // Format with fixed decimal places
+                                  const formatted = balanceNum.toFixed(
+                                    token.decimals
+                                  );
+
+                                  // Debug logging for Arc Testnet USDC
+                                  if (
+                                    token.symbol === "USDC" &&
+                                    network.chain === "Arc Testnet"
+                                  ) {
+                                    console.log("Arc USDC Balance Formatted:", {
+                                      balanceNum,
+                                      formatted,
+                                    });
+                                  }
+
+                                  return formatted;
+                                })()}
+                              </p>
+                            )}
+                          </div>
+                        ))
                       )}
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
-                        {network.chain}
-                      </p>
                     </div>
                   </div>
-                  {/* Balances Section */}
-                  <div className="flex flex-1 flex-col space-y-2 p-4">
-                    {nonZeroTokens.length === 0 && !loading ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No balances
-                      </p>
-                    ) : (
-                      nonZeroTokens.map((token) => (
-                        <div
-                          key={token.symbol}
-                          className="flex items-center justify-between gap-2 flex-shrink-0"
-                        >
-                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                            {token.symbol}
-                          </p>
-                          {loading ? (
-                            <div className="h-5 w-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-600" />
-                          ) : (
-                            <p className="text-base md:text-lg font-semibold text-gray-900 dark:text-white text-right whitespace-nowrap">
-                              {(() => {
-                                // Parse the balance string directly to avoid precision issues
-                                const balanceStr = String(token.balance).trim();
-
-                                // Debug logging for Arc Testnet USDC
-                                if (
-                                  token.symbol === "USDC" &&
-                                  network.chain === "Arc Testnet"
-                                ) {
-                                  console.log("Arc USDC Balance Debug:", {
-                                    rawBalance: token.balance,
-                                    balanceStr,
-                                    balanceType: typeof token.balance,
-                                  });
-                                }
-
-                                if (
-                                  !balanceStr ||
-                                  balanceStr === "0" ||
-                                  balanceStr === ""
-                                ) {
-                                  return "0.00";
-                                }
-                                const balanceNum = parseFloat(balanceStr);
-                                if (isNaN(balanceNum)) {
-                                  console.warn(
-                                    `Invalid balance for ${token.symbol}:`,
-                                    token.balance,
-                                    "raw string:",
-                                    balanceStr
-                                  );
-                                  return "0.00";
-                                }
-                                // Format with fixed decimal places
-                                const formatted = balanceNum.toFixed(
-                                  token.decimals
-                                );
-
-                                // Debug logging for Arc Testnet USDC
-                                if (
-                                  token.symbol === "USDC" &&
-                                  network.chain === "Arc Testnet"
-                                ) {
-                                  console.log("Arc USDC Balance Formatted:", {
-                                    balanceNum,
-                                    formatted,
-                                  });
-                                }
-
-                                return formatted;
-                              })()}
-                            </p>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
