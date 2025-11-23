@@ -10,7 +10,7 @@ import {
   getSimpleAccountAddress,
   getSponsorshipPolicyId,
 } from "./eip7702";
-import type { ChainConfig } from "./chains";
+import { ChainConfig, ARC_CHAIN } from "./chains";
 
 interface EIP7702WrapperOptions {
   sourceChain: ChainConfig;
@@ -24,6 +24,7 @@ interface EIP7702WrapperOptions {
   }) => Promise<any>; // Privy returns an authorization object
   getPublicClientForChain: (chainConfig: ChainConfig) => any; // Function to get public client for a chain
   confirmEachStep?: boolean; // Whether to show Privy popups for each step
+  originalProvider?: any; // The original provider before PrivyTransactionWrapper (for non-sponsored transactions)
 }
 
 /**
@@ -40,6 +41,7 @@ export function createEIP7702TransactionWrapper(
     signAuthorization,
     getPublicClientForChain,
     confirmEachStep = false,
+    originalProvider: trueOriginalProvider, // The provider before PrivyTransactionWrapper
   } = options;
 
   // Helper function to update bridge progress (same as PrivyTransactionWrapper)
@@ -128,9 +130,8 @@ export function createEIP7702TransactionWrapper(
       // Arc chain gas sponsorship logic:
       // - If Arc is source: only sponsor mint (destination chain)
       // - If Arc is destination: only sponsor approval and burn (source chain)
-      const ARC_CHAIN_ID = 5042002;
-      const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
-      const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
+      const isArcSource = sourceChain.chainId === ARC_CHAIN.chainId;
+      const isArcDestination = destinationChain.chainId === ARC_CHAIN.chainId;
 
       // Determine which chain this transaction is for
       let chainConfig: ChainConfig | null = null;
@@ -152,14 +153,29 @@ export function createEIP7702TransactionWrapper(
         // Arc is source: only sponsor mint (destination chain)
         // Approval and burn on Arc should NOT be sponsored
         shouldSponsor = isMint && isEIP7702Supported(destinationChain.chainId);
+        console.log(
+          `EIP-7702: Arc is source - shouldSponsor=${shouldSponsor} (isMint=${isMint}, destinationSupports=${isEIP7702Supported(
+            destinationChain.chainId
+          )})`
+        );
       } else if (isArcDestination) {
         // Arc is destination: only sponsor approval and burn (source chain)
         // Mint on Arc should NOT be sponsored
         shouldSponsor =
           (isApproval || isBurn) && isEIP7702Supported(sourceChain.chainId);
+        console.log(
+          `EIP-7702: Arc is destination - shouldSponsor=${shouldSponsor} (isApproval=${isApproval}, isBurn=${isBurn}, sourceSupports=${isEIP7702Supported(
+            sourceChain.chainId
+          )})`
+        );
       } else {
         // No Arc involved: use normal EIP-7702 support check
         shouldSponsor = chainConfig && isEIP7702Supported(chainConfig.chainId);
+        console.log(
+          `EIP-7702: No Arc - shouldSponsor=${shouldSponsor} (chainConfig=${!!chainConfig}, chainSupports=${
+            chainConfig ? isEIP7702Supported(chainConfig.chainId) : false
+          })`
+        );
       }
 
       // If sponsorship shouldn't be applied, pass through immediately
@@ -182,9 +198,18 @@ export function createEIP7702TransactionWrapper(
             } - using regular transaction`
           );
         }
-        // Pass through to original provider (PrivyTransactionWrapper)
-        // The PrivyTransactionWrapper will handle it and respect confirmEachStep
-        return originalProvider.request(args);
+        // Pass through to the true original provider (before PrivyTransactionWrapper)
+        // This avoids the loop where PrivyTransactionWrapper passes through again
+        // If we don't have trueOriginalProvider, fall back to originalProvider
+        const targetProvider = trueOriginalProvider || originalProvider;
+        console.log(
+          `EIP-7702: Passing through non-sponsored transaction to ${
+            trueOriginalProvider
+              ? "true original provider"
+              : "original provider"
+          }`
+        );
+        return targetProvider.request(args);
       }
 
       // Log that we're sponsoring this transaction
@@ -195,7 +220,7 @@ export function createEIP7702TransactionWrapper(
       );
 
       // Additional safety check: never try to create smart account client for Arc
-      if (chainConfig.chainId === ARC_CHAIN_ID) {
+      if (chainConfig.chainId === ARC_CHAIN.chainId) {
         console.warn(
           `Attempted to create EIP-7702 client for Arc Testnet - this should not happen. Passing through.`
         );
@@ -279,14 +304,9 @@ export function createEIP7702TransactionWrapper(
           nonce,
         };
 
-        // Pass showWalletUIs in the options parameter (second argument)
-        // This might suppress the popup when confirmEachStep is false
-        const authOptions: any = {};
-        if (!confirmEachStep) {
-          authOptions.showWalletUIs = false;
-        }
-
-        // TypeScript may not recognize the second parameter, but Privy accepts it
+        // Call signAuthorization with showWalletUIs: false to suppress popup
+        // (confirmEachStep is always false now)
+        const authOptions: any = { showWalletUIs: false };
         const authorizationResult = await (signAuthorization as any)(
           authInput,
           authOptions
@@ -366,6 +386,17 @@ export function createEIP7702TransactionWrapper(
           );
         }
 
+        console.log(
+          `EIP-7702: Attempting to send UserOperation on ${chainConfig.name} (chainId: ${chainConfig.chainId})`
+        );
+        console.log("EIP-7702: UserOperation details:", {
+          to: userOpTx.to,
+          value: userOpTx.value.toString(),
+          dataLength: userOpTx.data?.length || 0,
+          hasAuthorization: !!userOpTx.authorization,
+          hasPaymasterContext: !!userOpTx.paymasterContext,
+        });
+
         const userOpHash = await smartAccountClient.sendTransaction(userOpTx);
 
         // Update progress to show transaction was sent successfully
@@ -390,15 +421,55 @@ export function createEIP7702TransactionWrapper(
         }
 
         console.log(
-          `EIP-7702 UserOperation sent on ${chainConfig.name}: ${userOpHash}`
+          `EIP-7702 UserOperation sent successfully on ${chainConfig.name}: ${userOpHash}`
         );
         return userOpHash;
       } catch (error: any) {
         console.error(
-          `EIP-7702 transaction failed on ${chainConfig.name}:`,
+          `EIP-7702 transaction failed on ${chainConfig.name} (chainId: ${chainConfig.chainId}):`,
           error
         );
+        console.error("EIP-7702 error details:", {
+          errorMessage: error?.message,
+          errorStack: error?.stack,
+          errorCode: error?.code,
+          errorName: error?.name,
+          chainId: chainConfig.chainId,
+          chainName: chainConfig.name,
+          isMint,
+          isBurn,
+          isApproval,
+        });
+
+        // Update progress to show error
+        if (isApproval) {
+          updateBridgeProgress(
+            "approval",
+            "error",
+            `Step 1/3: Gas sponsorship failed - ${
+              error.message || String(error)
+            }`
+          );
+        } else if (isBurn) {
+          updateBridgeProgress(
+            "burn",
+            "error",
+            `Step 2/3: Gas sponsorship failed - ${
+              error.message || String(error)
+            }`
+          );
+        } else if (isMint) {
+          updateBridgeProgress(
+            "mint",
+            "error",
+            `Step 3/3: Gas sponsorship failed - ${
+              error.message || String(error)
+            }`
+          );
+        }
+
         // Re-throw the error - no fallback when gas sponsorship is enabled
+        // User must explicitly disable gas sponsorship if they want to use regular transactions
         throw new Error(
           `EIP-7702 gas sponsorship failed on ${chainConfig.name}: ${
             error.message || String(error)

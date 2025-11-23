@@ -20,7 +20,6 @@ import {
 import { createPrivyTransactionWrapper } from "@/lib/PrivyTransactionWrapper";
 import { createEIP7702TransactionWrapper } from "@/lib/EIP7702TransactionWrapper";
 import { isEIP7702Supported, createPublicClientForChain } from "@/lib/eip7702";
-import { useConfirmEachStep } from "@/components/PrivyProviderWrapper";
 import BridgeProgress from "@/components/BridgeProgress";
 import ChainSelect from "@/components/ChainSelect";
 import {
@@ -29,6 +28,8 @@ import {
   BASE_SEPOLIA_CHAIN,
   ARBITRUM_SEPOLIA_CHAIN,
   OP_SEPOLIA_CHAIN,
+  POLYGON_AMOY_CHAIN,
+  LINEA_SEPOLIA_CHAIN,
   ChainConfig,
 } from "@/lib/chains";
 
@@ -58,12 +59,14 @@ export default function BridgeForm() {
   const [baseSepoliaBalance, setBaseSepoliaBalance] = useState("0");
   const [arbitrumSepoliaBalance, setArbitrumSepoliaBalance] = useState("0");
   const [opSepoliaBalance, setOpSepoliaBalance] = useState("0");
+  const [polygonAmoyBalance, setPolygonAmoyBalance] = useState("0");
+  const [lineaSepoliaBalance, setLineaSepoliaBalance] = useState("0");
   const [arcBalance, setArcBalance] = useState("0");
   const [currentAllowance, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
-  const { confirmEachStep, setConfirmEachStep } = useConfirmEachStep(); // Get from context
+  const confirmEachStep = false; // Always off - checkbox hidden
   const [enableGasSponsorship, setEnableGasSponsorship] =
-    useState<boolean>(false); // Default: off
+    useState<boolean>(true); // Default: on
   const [bridgeSteps, setBridgeSteps] = useState<
     Array<{
       step: string;
@@ -174,6 +177,8 @@ export default function BridgeForm() {
         baseSepoliaBal,
         arbitrumSepoliaBal,
         opSepoliaBal,
+        polygonAmoyBal,
+        lineaSepoliaBal,
         arcBal,
       ] = await Promise.all([
         getUSDCBalance(
@@ -196,12 +201,24 @@ export default function BridgeForm() {
           OP_SEPOLIA_CHAIN,
           OP_SEPOLIA_CHAIN.rpcUrl
         ),
+        getUSDCBalance(
+          wallet.address,
+          POLYGON_AMOY_CHAIN,
+          POLYGON_AMOY_CHAIN.rpcUrl
+        ),
+        getUSDCBalance(
+          wallet.address,
+          LINEA_SEPOLIA_CHAIN,
+          LINEA_SEPOLIA_CHAIN.rpcUrl
+        ),
         getUSDCBalance(wallet.address, ARC_CHAIN, ARC_CHAIN.rpcUrl),
       ]);
       setSepoliaBalance(ethSepoliaBal);
       setBaseSepoliaBalance(baseSepoliaBal);
       setArbitrumSepoliaBalance(arbitrumSepoliaBal);
       setOpSepoliaBalance(opSepoliaBal);
+      setPolygonAmoyBalance(polygonAmoyBal);
+      setLineaSepoliaBalance(lineaSepoliaBal);
       setArcBalance(arcBal);
 
       if (spenderAddress && sourceChain) {
@@ -232,6 +249,10 @@ export default function BridgeForm() {
       return arbitrumSepoliaBalance;
     } else if (sourceChain.chainId === OP_SEPOLIA_CHAIN.chainId) {
       return opSepoliaBalance;
+    } else if (sourceChain.chainId === POLYGON_AMOY_CHAIN.chainId) {
+      return polygonAmoyBalance;
+    } else if (sourceChain.chainId === LINEA_SEPOLIA_CHAIN.chainId) {
+      return lineaSepoliaBalance;
     } else if (sourceChain.chainId === ARC_CHAIN.chainId) {
       return arcBalance;
     }
@@ -418,17 +439,7 @@ export default function BridgeForm() {
       // Create wrapped provider that intercepts transactions for custom UI messages
       // The wrapper passes through all non-transaction requests (chain switching, etc.)
       // so the adapter can still switch chains and perform other operations
-      let finalEip1193Provider = createPrivyTransactionWrapper(
-        ethereumProvider,
-        privySendTransaction,
-        confirmEachStep // Pass the confirmEachStep setting
-      );
-
-      // Wrap with EIP-7702 transaction wrapper if gas sponsorship is enabled
-      // Enable sponsorship when:
-      // 1. Arc is source (sponsor mint on destination)
-      // 2. Arc is destination (sponsor approval/burn on source)
-      // 3. Normal case: source chain supports EIP-7702
+      // We need to determine if gas sponsorship will be enabled before creating the wrapper
       const ARC_CHAIN_ID = 5042002;
       const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
       const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
@@ -437,7 +448,7 @@ export default function BridgeForm() {
         destinationChain.chainId
       );
 
-      const shouldEnableSponsorship =
+      const willEnableSponsorship =
         enableGasSponsorship &&
         walletClient &&
         (isArcSource ||
@@ -445,11 +456,20 @@ export default function BridgeForm() {
           sourceSupportsEIP7702 ||
           destinationSupportsEIP7702);
 
-      if (shouldEnableSponsorship) {
+      let finalEip1193Provider = createPrivyTransactionWrapper(
+        ethereumProvider,
+        privySendTransaction,
+        confirmEachStep, // Pass the confirmEachStep setting
+        willEnableSponsorship // Pass whether gas sponsorship will be enabled
+      );
+
+      // Wrap with EIP-7702 transaction wrapper if gas sponsorship is enabled
+      // (isArcSource, isArcDestination, etc. are already defined above)
+      if (willEnableSponsorship) {
         try {
           // Create a wrapper function that matches the expected signature
-          // Privy's signAuthorization accepts options as second parameter
-          // We can try passing showWalletUIs there to suppress popups
+          // When confirmEachStep is false, pass showWalletUIs: false to suppress popups
+          // When confirmEachStep is true, call without options (use Privy's default)
           const signAuthorizationWrapper = async (params: {
             contractAddress: `0x${string}`;
             chainId?: number;
@@ -463,13 +483,8 @@ export default function BridgeForm() {
               executor: params.executor,
             };
 
-            // Pass showWalletUIs in the options parameter (second argument)
-            // This might suppress the popup when confirmEachStep is false
-            const authOptions: any = {};
-            if (!confirmEachStep) {
-              authOptions.showWalletUIs = false;
-            }
-
+            // Always pass showWalletUIs: false since confirmEachStep is always false
+            const authOptions: any = { showWalletUIs: false };
             return await signAuthorization(authInput, authOptions);
           };
 
@@ -487,6 +502,7 @@ export default function BridgeForm() {
               signAuthorization: signAuthorizationWrapper,
               getPublicClientForChain,
               confirmEachStep, // Pass the confirmEachStep setting
+              originalProvider: ethereumProvider, // Pass the true original provider (before PrivyTransactionWrapper)
             }
           );
 
@@ -520,7 +536,7 @@ export default function BridgeForm() {
             }`
           );
         }
-      } else if (enableGasSponsorship && !shouldEnableSponsorship) {
+      } else if (enableGasSponsorship && !willEnableSponsorship) {
         console.warn(
           `EIP-7702 gas sponsorship is not available for ${sourceChain.name} → ${destinationChain.name}. Using regular transactions.`
         );
@@ -529,6 +545,16 @@ export default function BridgeForm() {
       const provider = new BrowserProvider(finalEip1193Provider as any);
 
       console.log("Starting bridge transaction...");
+      console.log("BridgeForm: Source chain before bridgeUSDC:", {
+        chainId: sourceChain.chainId,
+        name: sourceChain.name,
+        bridgeKitChainName: sourceChain.bridgeKitChainName,
+      });
+      console.log("BridgeForm: Destination chain before bridgeUSDC:", {
+        chainId: destinationChain.chainId,
+        name: destinationChain.name,
+        bridgeKitChainName: destinationChain.bridgeKitChainName,
+      });
       const result = await bridgeUSDC({
         amount,
         sourceChain,
@@ -738,6 +764,10 @@ export default function BridgeForm() {
                       setDestinationChain(ARC_CHAIN);
                     } else if (chain.chainId === OP_SEPOLIA_CHAIN.chainId) {
                       setDestinationChain(ARC_CHAIN);
+                    } else if (chain.chainId === POLYGON_AMOY_CHAIN.chainId) {
+                      setDestinationChain(ARC_CHAIN);
+                    } else if (chain.chainId === LINEA_SEPOLIA_CHAIN.chainId) {
+                      setDestinationChain(ARC_CHAIN);
                     } else {
                       setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
                     }
@@ -749,6 +779,8 @@ export default function BridgeForm() {
                   BASE_SEPOLIA_CHAIN,
                   ARBITRUM_SEPOLIA_CHAIN,
                   OP_SEPOLIA_CHAIN,
+                  POLYGON_AMOY_CHAIN,
+                  LINEA_SEPOLIA_CHAIN,
                 ]}
                 disabled={status === "bridging" || status === "approving"}
               />
@@ -785,6 +817,8 @@ export default function BridgeForm() {
                   BASE_SEPOLIA_CHAIN,
                   ARBITRUM_SEPOLIA_CHAIN,
                   OP_SEPOLIA_CHAIN,
+                  POLYGON_AMOY_CHAIN,
+                  LINEA_SEPOLIA_CHAIN,
                 ].filter((chain) => chain.chainId !== sourceChain.chainId)}
                 disabled={status === "bridging" || status === "approving"}
               />
@@ -853,59 +887,6 @@ export default function BridgeForm() {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="confirmEachStep"
-                checked={confirmEachStep}
-                onChange={(e) => setConfirmEachStep(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-gray-400"
-                disabled={status === "bridging" || status === "approving"}
-              />
-              <label
-                htmlFor="confirmEachStep"
-                className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
-              >
-                Confirm each step
-              </label>
-              <div className="group relative">
-                <button
-                  type="button"
-                  className="flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 rounded"
-                  disabled={status === "bridging" || status === "approving"}
-                  aria-label="Confirm each step information"
-                >
-                  <svg
-                    className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 disabled:opacity-50"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </button>
-                <div className="pointer-events-none invisible absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-700 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:pointer-events-auto group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                  <p>
-                    Show completion screens for each transaction step. When
-                    enabled, you&#39;ll see a confirmation screen after each
-                    step completes.
-                  </p>
-                  {enableGasSponsorship && (
-                    <p className="mt-2 text-yellow-700 dark:text-yellow-400">
-                      Note: Gas sponsored transactions will show an
-                      authorization popup for each step regardless of this
-                      setting due to security measures.
-                    </p>
-                  )}
-                  <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"></div>
-                </div>
-              </div>
-            </div>
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"

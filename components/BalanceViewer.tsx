@@ -9,6 +9,7 @@ import {
   BASE_SEPOLIA_CHAIN,
   ARBITRUM_SEPOLIA_CHAIN,
   OP_SEPOLIA_CHAIN,
+  POLYGON_AMOY_CHAIN,
 } from "@/lib/chains";
 import { getChainLogoPath } from "@/lib/chainLogos";
 import Image from "next/image";
@@ -26,12 +27,14 @@ export default function BalanceViewer() {
     baseSepolia: ChainBalances;
     arbitrumSepolia: ChainBalances;
     opSepolia: ChainBalances;
+    polygonAmoy: ChainBalances;
     arc: ChainBalances;
   }>({
     sepolia: { usdc: "0", eth: "0" },
     baseSepolia: { usdc: "0", eth: "0" },
     arbitrumSepolia: { usdc: "0", eth: "0" },
     opSepolia: { usdc: "0", eth: "0" },
+    polygonAmoy: { usdc: "0", eth: "0" },
     arc: { usdc: "0", eth: "0" },
   });
   const [loading, setLoading] = useState(true);
@@ -57,6 +60,7 @@ export default function BalanceViewer() {
           baseSepolia: { usdc: "0", eth: "0" },
           arbitrumSepolia: { usdc: "0", eth: "0" },
           opSepolia: { usdc: "0", eth: "0" },
+          polygonAmoy: { usdc: "0", eth: "0" },
           arc: { usdc: "0", eth: "0" },
         });
         setLoading(false);
@@ -93,6 +97,8 @@ export default function BalanceViewer() {
           arbitrumSepoliaETH,
           opSepoliaUSDC,
           opSepoliaETH,
+          polygonAmoyUSDC,
+          polygonAmoyETH,
         ] = await Promise.all([
           getUSDCBalance(walletAddress, ARC_CHAIN, ARC_CHAIN.rpcUrl),
           getUSDCBalance(
@@ -135,6 +141,16 @@ export default function BalanceViewer() {
             OP_SEPOLIA_CHAIN,
             OP_SEPOLIA_CHAIN.rpcUrl
           ),
+          getUSDCBalance(
+            walletAddress,
+            POLYGON_AMOY_CHAIN,
+            POLYGON_AMOY_CHAIN.rpcUrl
+          ),
+          getETHBalance(
+            walletAddress,
+            POLYGON_AMOY_CHAIN,
+            POLYGON_AMOY_CHAIN.rpcUrl
+          ),
         ]);
 
         setBalances({
@@ -158,6 +174,10 @@ export default function BalanceViewer() {
             usdc: opSepoliaUSDC,
             eth: opSepoliaETH,
           },
+          polygonAmoy: {
+            usdc: polygonAmoyUSDC,
+            eth: polygonAmoyETH,
+          },
         });
         hasFetchedRef.current = true;
         console.log("Balances fetched successfully:", {
@@ -177,6 +197,10 @@ export default function BalanceViewer() {
           opSepolia: {
             usdc: opSepoliaUSDC,
             eth: opSepoliaETH,
+          },
+          polygonAmoy: {
+            usdc: polygonAmoyUSDC,
+            eth: polygonAmoyETH,
           },
           walletAddress,
         });
@@ -218,6 +242,7 @@ export default function BalanceViewer() {
         baseSepolia: { usdc: "0", eth: "0" },
         arbitrumSepolia: { usdc: "0", eth: "0" },
         opSepolia: { usdc: "0", eth: "0" },
+        polygonAmoy: { usdc: "0", eth: "0" },
         arc: { usdc: "0", eth: "0" },
       });
       setLoading(false);
@@ -330,6 +355,21 @@ export default function BalanceViewer() {
         {
           symbol: "ETH",
           balance: balances.opSepolia.eth,
+          decimals: 4,
+        },
+      ],
+    },
+    {
+      chain: "Polygon Amoy",
+      tokens: [
+        {
+          symbol: "USDC",
+          balance: balances.polygonAmoy.usdc,
+          decimals: 2,
+        },
+        {
+          symbol: "ETH",
+          balance: balances.polygonAmoy.eth,
           decimals: 4,
         },
       ],

@@ -68,7 +68,7 @@ export default function Home() {
                 ArcBeam
               </h1>
               <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
-                Send USDC to anyone, anywhere
+                Send USDC to anyone, anywhere. No native token needed!
               </p>
             </div>
           </div>

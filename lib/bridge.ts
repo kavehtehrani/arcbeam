@@ -17,7 +17,17 @@ import {
   type WalletClient,
 } from "viem";
 import { arcTestnet } from "viem/chains";
-import { type ChainConfig } from "./chains";
+import {
+  type ChainConfig,
+  getBridgeKitChainName,
+  ETHEREUM_SEPOLIA_CHAIN,
+  BASE_SEPOLIA_CHAIN,
+  ARBITRUM_SEPOLIA_CHAIN,
+  OP_SEPOLIA_CHAIN,
+  POLYGON_AMOY_CHAIN,
+  LINEA_SEPOLIA_CHAIN,
+  ARC_CHAIN,
+} from "./chains";
 
 // ERC20 ABI for balance and allowance queries
 const ERC20_ABI = [
@@ -72,14 +82,15 @@ async function createViemAdapter(
 
   // If Arc Testnet is involved, we need to provide getPublicClient so viem knows about it
   const needsArcConfig =
-    sourceChainId === 5042002 || destinationChainId === 5042002;
+    sourceChainId === ARC_CHAIN.chainId ||
+    destinationChainId === ARC_CHAIN.chainId;
 
   if (needsArcConfig) {
     return createAdapterFromProvider({
       provider: eip1193Provider,
       getPublicClient: ({ chain }: { chain: ViemChain }): PublicClient => {
         // If viem asks for Arc Testnet, provide our custom chain definition
-        if (chain.id === 5042002) {
+        if (chain.id === ARC_CHAIN.chainId) {
           return createPublicClient({
             chain: arcTestnet,
             transport: http(arcTestnet.rpcUrls.default.http[0]),
@@ -94,7 +105,7 @@ async function createViemAdapter(
     });
   }
 
-  // For non-Arc chains, use simple approach
+  // For non-Arc chains, use simple approach (same as Base Sepolia, Arbitrum Sepolia, etc.)
   return createAdapterFromProvider({
     provider: eip1193Provider,
   });
@@ -215,9 +226,7 @@ export async function getETHBalance(
  */
 export function getTokenMessengerAddress(chainId: number): string {
   // TokenMessenger contract addresses for CCTP testnets
-  if (chainId === 11155111 || chainId === 84532 || chainId === 421614) {
-    return "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5";
-  }
+  // All testnets use the same address
   return "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5";
 }
 
@@ -286,7 +295,7 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
         state: "error",
         error:
           `Bridge not supported: ${sourceChain.name} → ${destinationChain.name}. ` +
-          `Please use Arc Testnet, Sepolia, Base Sepolia, or Arbitrum Sepolia.`,
+          `Please use Arc Testnet, Sepolia, Base Sepolia, Arbitrum Sepolia, OP Sepolia, or Linea Sepolia.`,
       };
     }
 
@@ -323,6 +332,70 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
     );
 
     console.log("BridgeKit: Calling bridge() method...");
+    console.log("BridgeKit: Source chain:", {
+      chainId: sourceChain.chainId,
+      name: sourceChain.name,
+      bridgeKitChainName: sourceChain.bridgeKitChainName,
+      hasBridgeKitChainName: !!sourceChain.bridgeKitChainName,
+      bridgeKitChainNameType: typeof sourceChain.bridgeKitChainName,
+    });
+    console.log("BridgeKit: Destination chain:", {
+      chainId: destinationChain.chainId,
+      name: destinationChain.name,
+      bridgeKitChainName: destinationChain.bridgeKitChainName,
+      hasBridgeKitChainName: !!destinationChain.bridgeKitChainName,
+      bridgeKitChainNameType: typeof destinationChain.bridgeKitChainName,
+    });
+
+    // Validate chain names are strings (not undefined/null)
+    if (typeof sourceChain.bridgeKitChainName !== "string") {
+      console.error(
+        "Source chain bridgeKitChainName is not a string:",
+        sourceChain.bridgeKitChainName
+      );
+    }
+    if (typeof destinationChain.bridgeKitChainName !== "string") {
+      console.error(
+        "Destination chain bridgeKitChainName is not a string:",
+        destinationChain.bridgeKitChainName
+      );
+    }
+
+    // Validate chain names match expected values
+    const expectedChainNames: Record<number, string> = {
+      11155111: "Ethereum_Sepolia",
+      84532: "Base_Sepolia",
+      421614: "Arbitrum_Sepolia",
+      11155420: "Optimism_Sepolia",
+      80002: "Polygon_Amoy_Testnet",
+      59141: "Linea_Sepolia",
+      5042002: "Arc_Testnet",
+    };
+
+    if (
+      sourceChain.bridgeKitChainName !== expectedChainNames[sourceChain.chainId]
+    ) {
+      console.error(
+        `Mismatch: Source chain ${
+          sourceChain.chainId
+        } has bridgeKitChainName "${
+          sourceChain.bridgeKitChainName
+        }" but expected "${expectedChainNames[sourceChain.chainId]}"`
+      );
+    }
+
+    if (
+      destinationChain.bridgeKitChainName !==
+      expectedChainNames[destinationChain.chainId]
+    ) {
+      console.error(
+        `Mismatch: Destination chain ${
+          destinationChain.chainId
+        } has bridgeKitChainName "${
+          destinationChain.bridgeKitChainName
+        }" but expected "${expectedChainNames[destinationChain.chainId]}"`
+      );
+    }
 
     // Build the 'to' parameter with optional recipient address
     const toParam: any = {
@@ -342,14 +415,54 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
       );
     }
 
-    const result = await bridgeKit.bridge({
+    // Log the exact parameters being passed to bridgeKit.bridge()
+    const bridgeParams = {
       from: {
         adapter: adapter,
         chain: sourceChain.bridgeKitChainName as any,
       },
       to: toParam,
       amount: amount,
+    };
+    console.log("BridgeKit: Exact parameters being passed to bridge():", {
+      from: {
+        chain: bridgeParams.from.chain,
+        adapterType: typeof bridgeParams.from.adapter,
+      },
+      to: {
+        chain: bridgeParams.to.chain,
+        adapterType: typeof bridgeParams.to.adapter,
+        recipientAddress: bridgeParams.to.recipientAddress,
+      },
+      amount: bridgeParams.amount,
     });
+
+    let result;
+    try {
+      result = await bridgeKit.bridge(bridgeParams);
+    } catch (error: any) {
+      // Log detailed error information for debugging
+      console.error("BridgeKit error details:", {
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        sourceChain: {
+          chainId: sourceChain.chainId,
+          name: sourceChain.name,
+          bridgeKitChainName: sourceChain.bridgeKitChainName,
+        },
+        destinationChain: {
+          chainId: destinationChain.chainId,
+          name: destinationChain.name,
+          bridgeKitChainName: destinationChain.bridgeKitChainName,
+        },
+        bridgeParams: {
+          fromChain: bridgeParams.from.chain,
+          toChain: bridgeParams.to.chain,
+        },
+      });
+      // Re-throw to let the normal error handling catch it
+      throw error;
+    }
 
     console.log("BridgeKit: Bridge result:", result);
 
@@ -377,7 +490,17 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
       const mintStep = bridgeResult.steps?.find((s) => s.name === "mint");
       if (mintStep?.state === "error") {
         bridgeResult.state = "partial";
-        bridgeResult.error = mintStep.errorMessage || "Mint step failed";
+        const errorMsg = mintStep.errorMessage || "Mint step failed";
+        console.error("BridgeKit: Mint step failed:", {
+          errorMessage: errorMsg,
+          mintStep: mintStep,
+          destinationChain: {
+            chainId: destinationChain.chainId,
+            name: destinationChain.name,
+            bridgeKitChainName: destinationChain.bridgeKitChainName,
+          },
+        });
+        bridgeResult.error = errorMsg;
       }
 
       // Check if all steps succeeded

@@ -8,7 +8,7 @@ const chainLogosMapping: Record<
     icon_id: "icon-blockchain/arc",
     path: "/logos/arc-testnet.svg",
   },
-  "Sepolia": {
+  Sepolia: {
     filename: "ethereum-sepolia.svg",
     icon_id: "icon-eth",
     path: "/logos/ethereum-sepolia.svg",
@@ -22,6 +22,26 @@ const chainLogosMapping: Record<
     filename: "arbitrum-sepolia.svg",
     icon_id: "icon-arb",
     path: "/logos/arbitrum-sepolia.svg",
+  },
+  "OP Sepolia": {
+    filename: "op-sepolia.svg",
+    icon_id: "icon-op",
+    path: "/logos/op-sepolia.svg",
+  },
+  "Linea Sepolia": {
+    filename: "linea-sepolia.svg",
+    icon_id: "icon-linea",
+    path: "/logos/linea-sepolia.svg",
+  },
+  "Polygon Amoy": {
+    filename: "polygon-pos-amoy.svg",
+    icon_id: "icon-poly",
+    path: "/logos/polygon-pos-amoy.svg",
+  },
+  "Polygon PoS Amoy": {
+    filename: "polygon-pos-amoy.svg",
+    icon_id: "icon-poly",
+    path: "/logos/polygon-pos-amoy.svg",
   },
 };
 
@@ -44,4 +64,3 @@ export function getChainLogoFilename(chainName: string): string | null {
   const chainInfo = chainLogosMapping[chainName];
   return chainInfo?.filename || null;
 }
-

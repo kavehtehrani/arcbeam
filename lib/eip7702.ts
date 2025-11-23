@@ -21,57 +21,64 @@ import { createSmartAccountClient } from "permissionless";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
 import { to7702SimpleSmartAccount } from "permissionless/accounts";
 import type { Chain } from "viem";
-import { ChainConfig } from "./chains";
+import {
+  ChainConfig,
+  ETHEREUM_SEPOLIA_CHAIN,
+  BASE_SEPOLIA_CHAIN,
+  ARBITRUM_SEPOLIA_CHAIN,
+  OP_SEPOLIA_CHAIN,
+  LINEA_SEPOLIA_CHAIN,
+  POLYGON_AMOY_CHAIN,
+  AVALANCHE_FUJI_CHAIN,
+  UNICHAIN_SEPOLIA_CHAIN,
+  PLUME_TESTNET_CHAIN,
+  SEI_TESTNET_CHAIN,
+  MONAD_TESTNET_CHAIN,
+} from "./chains";
 
 // Simple Account implementation addresses for different chains
 // These are the contract addresses that will be authorized via EIP-7702
 // Note: Arc Testnet (5042002) uses conditional gas sponsorship:
 // - If Arc is source: only mint step (on destination) is sponsored
 // - If Arc is destination: only approval/burn steps (on source) are sponsored
+const SIMPLE_ACCOUNT_ADDRESS = "0xe6Cae83BdE06E4c305530e199D7217f42808555B";
+
+// Build SIMPLE_ACCOUNT_ADDRESSES from chain configs (single source of truth)
 const SIMPLE_ACCOUNT_ADDRESSES: Record<number, string> = {
-  11155111: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Sepolia
-  84532: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Base Sepolia
-  421614: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Arbitrum Sepolia
-  11155420: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // OP Sepolia
-  80002: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Polygon Amoy
-  59141: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Linea Sepolia
-  43113: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Avalanche Fuji
-  1301: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Unichain Sepolia
-  98867: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Plume Testnet
-  1328: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Sei Testnet
-  10143: "0xe6Cae83BdE06E4c305530e199D7217f42808555B", // Monad Testnet
+  [ETHEREUM_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [BASE_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [ARBITRUM_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [OP_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [POLYGON_AMOY_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [LINEA_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [AVALANCHE_FUJI_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [UNICHAIN_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [PLUME_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [SEI_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
+  [MONAD_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   // Arc Testnet (5042002) is not listed here but supports conditional sponsorship
 };
 
-// Map ChainConfig to viem Chain
+// Map ChainConfig to viem Chain using chain configs from chains.ts
 function getViemChain(chainConfig: ChainConfig): Chain {
-  switch (chainConfig.chainId) {
-    case 11155111:
-      return sepolia;
-    case 84532:
-      return baseSepolia;
-    case 421614:
-      return arbitrumSepolia;
-    case 11155420:
-      return optimismSepolia;
-    case 80002:
-      return polygonAmoy;
-    case 59141:
-      return lineaSepolia;
-    case 43113:
-      return avalancheFuji;
-    case 1301:
-      return unichainSepolia;
-    case 98867:
-      return plumeTestnet;
-    case 1328:
-      return seiTestnet;
-    case 10143:
-      return monadTestnet;
-    default:
-      // For unsupported chains, return sepolia as fallback
-      return sepolia;
-  }
+  // Use chain configs as single source of truth
+  if (chainConfig.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId) return sepolia;
+  if (chainConfig.chainId === BASE_SEPOLIA_CHAIN.chainId) return baseSepolia;
+  if (chainConfig.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId)
+    return arbitrumSepolia;
+  if (chainConfig.chainId === OP_SEPOLIA_CHAIN.chainId) return optimismSepolia;
+  if (chainConfig.chainId === POLYGON_AMOY_CHAIN.chainId) return polygonAmoy;
+  if (chainConfig.chainId === LINEA_SEPOLIA_CHAIN.chainId) return lineaSepolia;
+  if (chainConfig.chainId === AVALANCHE_FUJI_CHAIN.chainId)
+    return avalancheFuji;
+  if (chainConfig.chainId === UNICHAIN_SEPOLIA_CHAIN.chainId)
+    return unichainSepolia;
+  if (chainConfig.chainId === PLUME_TESTNET_CHAIN.chainId) return plumeTestnet;
+  if (chainConfig.chainId === SEI_TESTNET_CHAIN.chainId) return seiTestnet;
+  if (chainConfig.chainId === MONAD_TESTNET_CHAIN.chainId) return monadTestnet;
+
+  // For unsupported chains, return sepolia as fallback
+  return sepolia;
 }
 
 /**
