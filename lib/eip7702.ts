@@ -11,7 +11,6 @@ import {
   optimismSepolia,
   polygonAmoy,
   inkSepolia,
-  avalancheFuji,
   unichainSepolia,
   plumeTestnet,
   seiTestnet,
@@ -29,7 +28,6 @@ import {
   OP_SEPOLIA_CHAIN,
   POLYGON_AMOY_CHAIN,
   INK_TESTNET_CHAIN,
-  AVALANCHE_FUJI_CHAIN,
   UNICHAIN_SEPOLIA_CHAIN,
   PLUME_TESTNET_CHAIN,
   SEI_TESTNET_CHAIN,
@@ -51,7 +49,6 @@ const SIMPLE_ACCOUNT_ADDRESSES: Record<number, string> = {
   [POLYGON_AMOY_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [POLYGON_AMOY_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [INK_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
-  [AVALANCHE_FUJI_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [UNICHAIN_SEPOLIA_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [PLUME_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
   [SEI_TESTNET_CHAIN.chainId]: SIMPLE_ACCOUNT_ADDRESS,
@@ -68,8 +65,6 @@ function getViemChain(chainConfig: ChainConfig): Chain {
   if (chainConfig.chainId === OP_SEPOLIA_CHAIN.chainId) return optimismSepolia;
   if (chainConfig.chainId === POLYGON_AMOY_CHAIN.chainId) return polygonAmoy;
   if (chainConfig.chainId === INK_TESTNET_CHAIN.chainId) return inkSepolia;
-  if (chainConfig.chainId === AVALANCHE_FUJI_CHAIN.chainId)
-    return avalancheFuji;
   if (chainConfig.chainId === UNICHAIN_SEPOLIA_CHAIN.chainId)
     return unichainSepolia;
   if (chainConfig.chainId === PLUME_TESTNET_CHAIN.chainId) return plumeTestnet;

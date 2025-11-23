@@ -43,11 +43,6 @@ const chainLogosMapping: Record<
     icon_id: "icon-ink",
     path: "/logos/ink-sepolia.svg",
   },
-  "Avalanche Fuji": {
-    filename: "avalanche-fuji.svg",
-    icon_id: "icon-avax",
-    path: "/logos/avalanche-fuji.svg",
-  },
 };
 
 /**

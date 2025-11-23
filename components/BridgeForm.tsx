@@ -30,7 +30,6 @@ import {
   OP_SEPOLIA_CHAIN,
   POLYGON_AMOY_CHAIN,
   INK_TESTNET_CHAIN,
-  AVALANCHE_FUJI_CHAIN,
   ChainConfig,
 } from "@/lib/chains";
 
@@ -62,7 +61,6 @@ export default function BridgeForm() {
   const [opSepoliaBalance, setOpSepoliaBalance] = useState("0");
   const [polygonAmoyBalance, setPolygonAmoyBalance] = useState("0");
   const [inkTestnetBalance, setInkTestnetBalance] = useState("0");
-  const [avalancheFujiBalance, setAvalancheFujiBalance] = useState("0");
   const [arcBalance, setArcBalance] = useState("0");
   const [currentAllowance, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
@@ -181,7 +179,6 @@ export default function BridgeForm() {
         opSepoliaBal,
         polygonAmoyBal,
         inkTestnetBal,
-        avalancheFujiBal,
         arcBal,
       ] = await Promise.all([
         getUSDCBalance(
@@ -214,11 +211,6 @@ export default function BridgeForm() {
           INK_TESTNET_CHAIN,
           INK_TESTNET_CHAIN.rpcUrl
         ),
-        getUSDCBalance(
-          wallet.address,
-          AVALANCHE_FUJI_CHAIN,
-          AVALANCHE_FUJI_CHAIN.rpcUrl
-        ),
         getUSDCBalance(wallet.address, ARC_CHAIN, ARC_CHAIN.rpcUrl),
       ]);
       setSepoliaBalance(ethSepoliaBal);
@@ -227,7 +219,6 @@ export default function BridgeForm() {
       setOpSepoliaBalance(opSepoliaBal);
       setPolygonAmoyBalance(polygonAmoyBal);
       setInkTestnetBalance(inkTestnetBal);
-      setAvalancheFujiBalance(avalancheFujiBal);
       setArcBalance(arcBal);
 
       if (spenderAddress && sourceChain) {
@@ -262,8 +253,6 @@ export default function BridgeForm() {
       return polygonAmoyBalance;
     } else if (sourceChain.chainId === INK_TESTNET_CHAIN.chainId) {
       return inkTestnetBalance;
-    } else if (sourceChain.chainId === AVALANCHE_FUJI_CHAIN.chainId) {
-      return avalancheFujiBalance;
     } else if (sourceChain.chainId === ARC_CHAIN.chainId) {
       return arcBalance;
     }
@@ -779,8 +768,6 @@ export default function BridgeForm() {
                       setDestinationChain(ARC_CHAIN);
                     } else if (chain.chainId === INK_TESTNET_CHAIN.chainId) {
                       setDestinationChain(ARC_CHAIN);
-                    } else if (chain.chainId === AVALANCHE_FUJI_CHAIN.chainId) {
-                      setDestinationChain(ARC_CHAIN);
                     } else {
                       setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
                     }
@@ -794,7 +781,6 @@ export default function BridgeForm() {
                   OP_SEPOLIA_CHAIN,
                   POLYGON_AMOY_CHAIN,
                   INK_TESTNET_CHAIN,
-                  AVALANCHE_FUJI_CHAIN,
                 ]}
                 disabled={status === "bridging" || status === "approving"}
               />
@@ -833,7 +819,6 @@ export default function BridgeForm() {
                   OP_SEPOLIA_CHAIN,
                   POLYGON_AMOY_CHAIN,
                   INK_TESTNET_CHAIN,
-                  AVALANCHE_FUJI_CHAIN,
                 ].filter((chain) => chain.chainId !== sourceChain.chainId)}
                 disabled={status === "bridging" || status === "approving"}
               />

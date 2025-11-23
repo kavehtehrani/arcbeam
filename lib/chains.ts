@@ -26,7 +26,6 @@ const BRIDGE_KIT_CHAIN_NAMES: Record<number, string> = {
   11155420: "Optimism_Sepolia",
   80002: "Polygon_Amoy_Testnet",
   763373: "Ink_Testnet",
-  43113: "Avalanche_Fuji",
   1301: "Unichain_Sepolia",
   98867: "Plume_Testnet",
   1328: "Sei_Testnet",
@@ -66,7 +65,6 @@ export const ARBITRUM_SEPOLIA_CHAIN = createChainConfig(arbitrumSepolia);
 export const OP_SEPOLIA_CHAIN = createChainConfig(optimismSepolia);
 export const POLYGON_AMOY_CHAIN = createChainConfig(polygonAmoy);
 export const INK_TESTNET_CHAIN = createChainConfig(inkSepolia);
-export const AVALANCHE_FUJI_CHAIN = createChainConfig(avalancheFuji);
 export const UNICHAIN_SEPOLIA_CHAIN = createChainConfig(unichainSepolia);
 export const PLUME_TESTNET_CHAIN = createChainConfig(plumeTestnet);
 export const SEI_TESTNET_CHAIN = createChainConfig(seiTestnet);
@@ -81,7 +79,6 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
   OP_SEPOLIA_CHAIN,
   POLYGON_AMOY_CHAIN,
   INK_TESTNET_CHAIN,
-  AVALANCHE_FUJI_CHAIN,
   UNICHAIN_SEPOLIA_CHAIN,
   PLUME_TESTNET_CHAIN,
   SEI_TESTNET_CHAIN,
