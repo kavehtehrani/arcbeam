@@ -84,6 +84,7 @@ export default function BridgeForm() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedQR, setCopiedQR] = useState(false);
   const [paymentLinkDetected, setPaymentLinkDetected] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const isBridgingRef = useRef(false);
   const hasSetActiveWalletRef = useRef(false);
   const qrCodeRef = useRef<SVGSVGElement>(null);
@@ -1544,67 +1545,27 @@ export default function BridgeForm() {
                         </div>
                       </div>
 
-                      {/* QR Code Display */}
-                      <div className="p-2 w-full flex flex-col items-center">
-                        <div className="relative">
-                          <QRCodeSVG
-                            ref={qrCodeRef}
-                            value={qrCodeData}
-                            size={180}
-                            level="M"
-                            includeMargin={true}
-                            className="rounded-lg"
-                          />
-                        </div>
-                        <div className="mt-3 w-full flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            Scan to pay{" "}
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              • {receiveChain.name} • {receiveAmount} USDC
-                            </span>
-                          </p>
-                          <button
-                            onClick={copyQRCodeAsImage}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100 rounded-md dark:text-gray-200 dark:hover:bg-gray-600"
-                            title="Copy QR code as image"
+                      {/* Generate QR Button */}
+                      <div className="p-4 w-full flex flex-col items-center">
+                        <button
+                          onClick={() => setShowQRModal(true)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-green-500 rounded-lg hover:opacity-90 transition-opacity dark:from-green-700 dark:to-green-600"
+                        >
+                          <svg
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
                           >
-                            {copiedQR ? (
-                              <>
-                                <svg
-                                  className="h-3.5 w-3.5 text-green-600"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                                <span className="text-green-600">Copied</span>
-                              </>
-                            ) : (
-                              <>
-                                <svg
-                                  className="h-3.5 w-3.5"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                  />
-                                </svg>
-                                <span>Copy QR</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                            />
+                          </svg>
+                          Generate QR Code
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1627,6 +1588,102 @@ export default function BridgeForm() {
           </div>
         </div>
       </div>
+
+      {/* QR Code Modal */}
+      {showQRModal && paymentRequestData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowQRModal(false)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setShowQRModal(false)}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            {/* QR Code Display */}
+            <div className="flex flex-col items-center">
+              <div className="relative">
+                <QRCodeSVG
+                  ref={qrCodeRef}
+                  value={qrCodeData}
+                  size={256}
+                  level="M"
+                  includeMargin={true}
+                  className="rounded-lg"
+                />
+              </div>
+              <div className="mt-4 w-full flex flex-col items-center gap-3">
+                <p className="text-sm font-medium text-gray-900 dark:text-white text-center">
+                  Scan to pay{" "}
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    • {receiveChain.name} • {receiveAmount} USDC
+                  </span>
+                </p>
+                <button
+                  onClick={copyQRCodeAsImage}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 rounded-md dark:text-gray-200 dark:hover:bg-gray-600"
+                  title="Copy QR code as image"
+                >
+                  {copiedQR ? (
+                    <>
+                      <svg
+                        className="h-4 w-4 text-green-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span className="text-green-600">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span>Copy QR</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
