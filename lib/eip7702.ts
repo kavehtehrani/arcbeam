@@ -14,7 +14,6 @@ import {
   unichainSepolia,
   plumeTestnet,
   seiTestnet,
-  monadTestnet,
 } from "viem/chains";
 import { createSmartAccountClient } from "permissionless";
 import { createPimlicoClient } from "permissionless/clients/pimlico";

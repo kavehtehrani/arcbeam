@@ -40,7 +40,6 @@ export function createEIP7702TransactionWrapper(
     walletClient,
     signAuthorization,
     getPublicClientForChain,
-    confirmEachStep = false,
     originalProvider: trueOriginalProvider, // The provider before PrivyTransactionWrapper
   } = options;
 

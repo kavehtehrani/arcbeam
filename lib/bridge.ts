@@ -9,25 +9,12 @@ import {
 } from "ethers";
 import {
   createPublicClient,
-  createWalletClient,
-  custom,
   http,
   type Chain as ViemChain,
   type PublicClient,
-  type WalletClient,
 } from "viem";
 import { arcTestnet } from "viem/chains";
-import {
-  type ChainConfig,
-  getBridgeKitChainName,
-  ETHEREUM_SEPOLIA_CHAIN,
-  BASE_SEPOLIA_CHAIN,
-  ARBITRUM_SEPOLIA_CHAIN,
-  OP_SEPOLIA_CHAIN,
-  POLYGON_AMOY_CHAIN,
-  INK_TESTNET_CHAIN,
-  ARC_CHAIN,
-} from "./chains";
+import { type ChainConfig, ARC_CHAIN } from "./chains";
 
 // ERC20 ABI for balance and allowance queries
 const ERC20_ABI = [
@@ -224,7 +211,8 @@ export async function getETHBalance(
  * Get the TokenMessenger contract address for a chain
  * This is the spender address that needs approval for USDC transfers
  */
-export function getTokenMessengerAddress(chainId: number): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function getTokenMessengerAddress(_chainId: number): string {
   // TokenMessenger contract addresses for CCTP testnets
   // All testnets use the same address
   return "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5";

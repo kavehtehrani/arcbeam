@@ -35,15 +35,6 @@ import {
   getChainById,
   SUPPORTED_CHAINS,
 } from "@/lib/chains";
-import { getChainLogoPath } from "@/lib/chainLogos";
-
-// Parse payment request from URL parameters
-interface PaymentRequestFromURL {
-  address: string;
-  chainId: number;
-  amount: string;
-  token: string;
-}
 
 type BridgeStatus = "idle" | "approving" | "bridging" | "success" | "error";
 
@@ -74,7 +65,7 @@ export default function BridgeForm() {
   const [polygonAmoyBalance, setPolygonAmoyBalance] = useState("0");
   const [inkTestnetBalance, setInkTestnetBalance] = useState("0");
   const [arcBalance, setArcBalance] = useState("0");
-  const [currentAllowance, setCurrentAllowance] = useState<string>("0");
+  const [, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
   const confirmEachStep = false; // Always off - checkbox hidden
   const [enableGasSponsorship, setEnableGasSponsorship] =
@@ -90,7 +81,6 @@ export default function BridgeForm() {
   const [receiveChain, setReceiveChain] = useState<ChainConfig>(ARC_CHAIN);
   const [receiveAmount, setReceiveAmount] = useState("");
   const [receiveRecipient, setReceiveRecipient] = useState("");
-  const [copiedQR, setCopiedQR] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [paymentLinkDetected, setPaymentLinkDetected] = useState(false);
   const isBridgingRef = useRef(false);

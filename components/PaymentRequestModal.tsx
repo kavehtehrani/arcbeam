@@ -7,12 +7,6 @@ import ChainSelect from "@/components/ChainSelect";
 import Image from "next/image";
 import {
   ARC_CHAIN,
-  ETHEREUM_SEPOLIA_CHAIN,
-  BASE_SEPOLIA_CHAIN,
-  ARBITRUM_SEPOLIA_CHAIN,
-  OP_SEPOLIA_CHAIN,
-  POLYGON_AMOY_CHAIN,
-  INK_TESTNET_CHAIN,
   ChainConfig,
   SUPPORTED_CHAINS,
   getChainById,
