@@ -951,10 +951,6 @@ export default function BridgeForm() {
     };
   }, [wallet?.address, receiveChain, receiveAmount, receiveRecipient]);
 
-  const qrCodeData = paymentRequestData
-    ? JSON.stringify(paymentRequestData)
-    : "";
-
   const paymentLink = useMemo(() => {
     if (!paymentRequestData) return "";
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -966,6 +962,9 @@ export default function BridgeForm() {
     });
     return `${baseUrl}?${params.toString()}`;
   }, [paymentRequestData]);
+
+  // QR code should encode the payment link URL, not JSON data
+  const qrCodeData = paymentLink;
 
   const availableChains = SUPPORTED_CHAINS.filter(
     (chain) => chain.usdcAddress && chain.usdcAddress !== ""
@@ -1341,8 +1340,8 @@ export default function BridgeForm() {
                             } else {
                               return (
                                 <p>
-                                  Gas fees will be sponsored by us. You can
-                                  send USDC even if you have no gas tokens on{" "}
+                                  Gas fees will be sponsored by us. You can send
+                                  USDC even if you have no gas tokens on{" "}
                                   {sourceChain.name}.
                                 </p>
                               );
