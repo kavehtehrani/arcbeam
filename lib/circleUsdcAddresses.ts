@@ -304,6 +304,7 @@ export const CHAIN_ID_TO_USDC_ADDRESS: Record<number, string> = {
   59141: USDC_LINEA_SEPOLIA, // Linea Sepolia
   11155420: USDC_OP_SEPOLIA, // OP Sepolia
   80002: USDC_POLYGON_AMOY, // Polygon PoS Amoy
+  763373: USDC_INK_TESTNET, // Ink Testnet
   1328: USDC_SEI_TESTNET, // Sei Testnet
   10143: USDC_MONAD_TESTNET, // Monad Testnet
   1301: USDC_UNICHAIN_SEPOLIA, // Unichain Sepolia

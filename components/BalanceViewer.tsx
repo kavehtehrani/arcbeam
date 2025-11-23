@@ -399,6 +399,21 @@ export default function BalanceViewer() {
         },
       ],
     },
+    {
+      chain: "Ink Sepolia",
+      tokens: [
+        {
+          symbol: "USDC",
+          balance: balances.inkTestnet.usdc,
+          decimals: 2,
+        },
+        {
+          symbol: "ETH",
+          balance: balances.inkTestnet.eth,
+          decimals: 4,
+        },
+      ],
+    },
   ]
     .map((network) => ({
       ...network,
