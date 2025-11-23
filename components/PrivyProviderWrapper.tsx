@@ -24,7 +24,6 @@ import {
   arcTestnet,
 } from "viem/chains";
 
-// Context to share confirmEachStep state across the app
 interface ConfirmEachStepContextType {
   confirmEachStep: boolean;
   setConfirmEachStep: (value: boolean) => void;
@@ -208,14 +207,9 @@ export default function PrivyProviderWrapper({
             ethereum: {
               createOnLogin: "all-users",
             },
-            // Toggle showWalletUIs based on confirmEachStep checkbox
-            // When false: no popups (seamless)
-            // When true: show popups for all operations including EIP-7702 authorizations
             showWalletUIs: confirmEachStep,
           },
-          // Configure supported chains for Privy (required for custom chains like Arc Testnet)
-          // This ensures Privy's embedded wallets recognize and can switch to these chains
-          defaultChain: sepolia, // Default to Sepolia
+          defaultChain: sepolia,
           supportedChains: [
             sepolia,
             baseSepolia,

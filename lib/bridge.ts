@@ -54,9 +54,6 @@ export interface BridgeResult {
 
 /**
  * Create Viem adapter from EIP-1193 provider for Circle Bridge Kit
- *
- * Note: We need to provide getPublicClient to handle Arc Testnet since viem doesn't
- * recognize it by default. The adapter uses viem internally and needs the chain definition.
  */
 async function createViemAdapter(
   eip1193Provider: any,
@@ -67,7 +64,6 @@ async function createViemAdapter(
     throw new Error("EIP-1193 provider is required");
   }
 
-  // If Arc Testnet is involved, we need to provide getPublicClient so viem knows about it
   const needsArcConfig =
     sourceChainId === ARC_CHAIN.chainId ||
     destinationChainId === ARC_CHAIN.chainId;
@@ -76,14 +72,12 @@ async function createViemAdapter(
     return createAdapterFromProvider({
       provider: eip1193Provider,
       getPublicClient: ({ chain }: { chain: ViemChain }): PublicClient => {
-        // If viem asks for Arc Testnet, provide our custom chain definition
         if (chain.id === ARC_CHAIN.chainId) {
           return createPublicClient({
             chain: arcTestnet,
             transport: http(arcTestnet.rpcUrls.default.http[0]),
           });
         }
-        // For other chains, use default viem behavior
         return createPublicClient({
           chain,
           transport: http(),
@@ -92,7 +86,6 @@ async function createViemAdapter(
     });
   }
 
-  // For non-Arc chains, use simple approach (same as Base Sepolia, Arbitrum Sepolia, etc.)
   return createAdapterFromProvider({
     provider: eip1193Provider,
   });
@@ -209,12 +202,9 @@ export async function getETHBalance(
 
 /**
  * Get the TokenMessenger contract address for a chain
- * This is the spender address that needs approval for USDC transfers
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function getTokenMessengerAddress(_chainId: number): string {
-  // TokenMessenger contract addresses for CCTP testnets
-  // All testnets use the same address
   return "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5";
 }
 
@@ -287,15 +277,12 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
       };
     }
 
-    console.log("Creating Viem adapter for Circle Bridge Kit...");
     const adapter = await createViemAdapter(
       eip1193Provider,
       sourceChain.chainId,
       destinationChain.chainId
     );
-    console.log("Viem adapter created");
 
-    // Helper function to update bridge progress
     const updateProgress = (
       step: "approval" | "burn" | "mint",
       status: "pending" | "waiting" | "processing" | "completed" | "error",
@@ -319,91 +306,18 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
       "Step 1/3: Starting approval process..."
     );
 
-    console.log("BridgeKit: Calling bridge() method...");
-    console.log("BridgeKit: Source chain:", {
-      chainId: sourceChain.chainId,
-      name: sourceChain.name,
-      bridgeKitChainName: sourceChain.bridgeKitChainName,
-      hasBridgeKitChainName: !!sourceChain.bridgeKitChainName,
-      bridgeKitChainNameType: typeof sourceChain.bridgeKitChainName,
-    });
-    console.log("BridgeKit: Destination chain:", {
-      chainId: destinationChain.chainId,
-      name: destinationChain.name,
-      bridgeKitChainName: destinationChain.bridgeKitChainName,
-      hasBridgeKitChainName: !!destinationChain.bridgeKitChainName,
-      bridgeKitChainNameType: typeof destinationChain.bridgeKitChainName,
-    });
-
-    // Validate chain names are strings (not undefined/null)
-    if (typeof sourceChain.bridgeKitChainName !== "string") {
-      console.error(
-        "Source chain bridgeKitChainName is not a string:",
-        sourceChain.bridgeKitChainName
-      );
-    }
-    if (typeof destinationChain.bridgeKitChainName !== "string") {
-      console.error(
-        "Destination chain bridgeKitChainName is not a string:",
-        destinationChain.bridgeKitChainName
-      );
-    }
-
-    // Validate chain names match expected values
-    const expectedChainNames: Record<number, string> = {
-      11155111: "Ethereum_Sepolia",
-      84532: "Base_Sepolia",
-      421614: "Arbitrum_Sepolia",
-      11155420: "Optimism_Sepolia",
-      80002: "Polygon_Amoy_Testnet",
-      763373: "Ink_Testnet",
-      5042002: "Arc_Testnet",
-    };
-
-    if (
-      sourceChain.bridgeKitChainName !== expectedChainNames[sourceChain.chainId]
-    ) {
-      console.error(
-        `Mismatch: Source chain ${
-          sourceChain.chainId
-        } has bridgeKitChainName "${
-          sourceChain.bridgeKitChainName
-        }" but expected "${expectedChainNames[sourceChain.chainId]}"`
-      );
-    }
-
-    if (
-      destinationChain.bridgeKitChainName !==
-      expectedChainNames[destinationChain.chainId]
-    ) {
-      console.error(
-        `Mismatch: Destination chain ${
-          destinationChain.chainId
-        } has bridgeKitChainName "${
-          destinationChain.bridgeKitChainName
-        }" but expected "${expectedChainNames[destinationChain.chainId]}"`
-      );
-    }
-
-    // Build the 'to' parameter with optional recipient address
     const toParam: any = {
       adapter: adapter,
       chain: destinationChain.bridgeKitChainName as any,
     };
 
-    // Add recipient address if provided and different from user address
     if (
       params.recipientAddress &&
       params.recipientAddress !== params.userAddress
     ) {
       toParam.recipientAddress = params.recipientAddress;
-      console.log(
-        "BridgeKit: Using recipient address:",
-        params.recipientAddress
-      );
     }
 
-    // Log the exact parameters being passed to bridgeKit.bridge()
     const bridgeParams = {
       from: {
         adapter: adapter,
@@ -412,47 +326,13 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
       to: toParam,
       amount: amount,
     };
-    console.log("BridgeKit: Exact parameters being passed to bridge():", {
-      from: {
-        chain: bridgeParams.from.chain,
-        adapterType: typeof bridgeParams.from.adapter,
-      },
-      to: {
-        chain: bridgeParams.to.chain,
-        adapterType: typeof bridgeParams.to.adapter,
-        recipientAddress: bridgeParams.to.recipientAddress,
-      },
-      amount: bridgeParams.amount,
-    });
 
     let result;
     try {
       result = await bridgeKit.bridge(bridgeParams);
     } catch (error: any) {
-      // Log detailed error information for debugging
-      console.error("BridgeKit error details:", {
-        errorMessage: error?.message,
-        errorCode: error?.code,
-        sourceChain: {
-          chainId: sourceChain.chainId,
-          name: sourceChain.name,
-          bridgeKitChainName: sourceChain.bridgeKitChainName,
-        },
-        destinationChain: {
-          chainId: destinationChain.chainId,
-          name: destinationChain.name,
-          bridgeKitChainName: destinationChain.bridgeKitChainName,
-        },
-        bridgeParams: {
-          fromChain: bridgeParams.from.chain,
-          toChain: bridgeParams.to.chain,
-        },
-      });
-      // Re-throw to let the normal error handling catch it
       throw error;
     }
-
-    console.log("BridgeKit: Bridge result:", result);
 
     if (result && typeof result === "object") {
       const bridgeResult: BridgeResult = {
@@ -460,13 +340,11 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
         steps: (result as any).steps || [],
       };
 
-      // Extract source transaction hash from steps
       const burnStep = bridgeResult.steps?.find((s) => s.name === "burn");
       if (burnStep?.txHash) {
         bridgeResult.sourceTxHash = burnStep.txHash;
       }
 
-      // Extract attestation data if available
       const attestationStep = bridgeResult.steps?.find(
         (s) => s.name === "fetchAttestation"
       );
@@ -474,24 +352,12 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
         bridgeResult.attestation = (attestationStep as any).data;
       }
 
-      // Check if mint failed
       const mintStep = bridgeResult.steps?.find((s) => s.name === "mint");
       if (mintStep?.state === "error") {
         bridgeResult.state = "partial";
-        const errorMsg = mintStep.errorMessage || "Mint step failed";
-        console.error("BridgeKit: Mint step failed:", {
-          errorMessage: errorMsg,
-          mintStep: mintStep,
-          destinationChain: {
-            chainId: destinationChain.chainId,
-            name: destinationChain.name,
-            bridgeKitChainName: destinationChain.bridgeKitChainName,
-          },
-        });
-        bridgeResult.error = errorMsg;
+        bridgeResult.error = mintStep.errorMessage || "Mint step failed";
       }
 
-      // Check if all steps succeeded
       const allStepsSucceeded = bridgeResult.steps?.every(
         (s) => s.state === "success"
       );
@@ -553,16 +419,13 @@ export async function bridgeUSDC(params: BridgeParams): Promise<BridgeResult> {
       };
     }
 
-    // Return error result instead of throwing
     return {
       state: "error",
       error: "Invalid bridge result format - no transaction hash found",
     };
   } catch (error: any) {
-    console.error("Error bridging USDC:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Bridge transaction failed";
-    // Return error result instead of throwing
     return {
       state: "error",
       error: errorMessage,

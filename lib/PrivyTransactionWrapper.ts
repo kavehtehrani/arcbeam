@@ -8,20 +8,16 @@ import { ARC_CHAIN } from "./chains";
 export function createPrivyTransactionWrapper(
   originalProvider: any,
   sendTransactionFn: any,
-  confirmEachStep: boolean = false, // Default: false (skip completion screens)
-  gasSponsorshipEnabled: boolean = false // Whether EIP-7702 gas sponsorship is enabled
+  confirmEachStep: boolean = false,
+  gasSponsorshipEnabled: boolean = false
 ): any {
   return {
     ...originalProvider,
     request: async (args: { method: string; params?: any[] }) => {
-      // Handle wallet_switchChain - critical for Arc Testnet
-      // Viem validates chain IDs, but we need to ensure the provider can handle the switch
-      // even if viem doesn't recognize the chain
       if (args.method === "wallet_switchChain") {
         try {
           return await originalProvider.request(args);
         } catch (error: any) {
-          // If switching fails and it's Arc Testnet, try to add the chain first
           const chainId = args.params?.[0]?.chainId;
           const arcChainIdHex = `0x${ARC_CHAIN.chainId.toString(16)}`;
           const isArcTestnet =
@@ -31,11 +27,7 @@ export function createPrivyTransactionWrapper(
               parseInt(chainId, 16) === ARC_CHAIN.chainId);
 
           if (isArcTestnet) {
-            console.log(
-              "Arc Testnet switch failed, attempting to add chain first..."
-            );
             try {
-              // Try to add the chain first
               await originalProvider.request({
                 method: "wallet_addEthereumChain",
                 params: [
@@ -55,11 +47,8 @@ export function createPrivyTransactionWrapper(
                   },
                 ],
               });
-              // Now try switching again
               return await originalProvider.request(args);
             } catch (addError) {
-              console.warn("Failed to add Arc Testnet:", addError);
-              // Throw original error
               throw error;
             }
           }
@@ -67,13 +56,10 @@ export function createPrivyTransactionWrapper(
         }
       }
 
-      // Handle wallet_addEthereumChain
       if (args.method === "wallet_addEthereumChain") {
         return originalProvider.request(args);
       }
 
-      // Pass through all other non-transaction requests immediately (chain switching, etc.)
-      // This ensures the adapter can switch chains and perform other operations
       if (args.method !== "eth_sendTransaction") {
         return originalProvider.request(args);
       }
@@ -81,12 +67,7 @@ export function createPrivyTransactionWrapper(
       if (args.method === "eth_sendTransaction" && args.params?.[0]) {
         const tx = args.params[0];
 
-        // CRITICAL: If gas sponsorship is enabled, we MUST pass through to EIP-7702 wrapper
-        // The EIP-7702 wrapper (which wraps this wrapper) handles all sponsored transactions.
-        // For non-sponsored transactions, EIP-7702 will call the true original provider
-        // (passed via originalProvider option), bypassing this wrapper to avoid loops.
         if (gasSponsorshipEnabled) {
-          // Still update progress for UI feedback, but don't intercept
           const updateBridgeProgress = (
             step: "approval" | "burn" | "mint",
             status:
@@ -109,7 +90,6 @@ export function createPrivyTransactionWrapper(
             }
           };
 
-          // Detect transaction type for progress updates only
           const approvalSelectors = ["0x095ea7b3", "0x39509351"];
           const dataPrefix = tx.data?.slice(0, 10)?.toLowerCase() || "";
           const isApproval = approvalSelectors.some(
@@ -149,34 +129,10 @@ export function createPrivyTransactionWrapper(
               "Step 3/3: Minting USDC on destination chain..."
             );
           }
-
-          // Pass through to let EIP-7702 wrapper handle it (EIP-7702 is outside this wrapper)
-          // If this is a callback from EIP-7702 (non-sponsored transaction), we'll handle
-          // it in the normal flow below
-          console.log(
-            "PrivyTransactionWrapper: Gas sponsorship enabled - passing transaction to next wrapper in chain",
-            {
-              txType: isApproval
-                ? "approval"
-                : isBurn
-                ? "burn"
-                : isMint
-                ? "mint"
-                : "unknown",
-              dataPrefix: tx.data?.slice(0, 10),
-            }
-          );
-          // DON'T pass through here - let it fall through to normal handling
-          // The transaction should have hit EIP-7702 first (it's outside us)
-          // If we're receiving it, it means EIP-7702 passed it through (non-sponsored)
-          // So we should handle it normally
         }
 
-        // Only intercept when gas sponsorship is NOT enabled
-        // In this case, we can add custom UI messages via sendTransactionFn
         let uiOptions: any = {};
 
-        // USDC approval function selectors
         const approvalSelectors = ["0x095ea7b3", "0x39509351"];
         const dataPrefix = tx.data?.slice(0, 10).toLowerCase();
         const isApprovalTransaction =
@@ -185,7 +141,6 @@ export function createPrivyTransactionWrapper(
           tx.data.length >= 10 &&
           approvalSelectors.some((selector) => dataPrefix === selector);
 
-        // Helper function to update bridge progress
         const updateBridgeProgress = (
           step: "approval" | "burn" | "mint",
           status: "pending" | "waiting" | "processing" | "completed" | "error",
@@ -217,7 +172,6 @@ export function createPrivyTransactionWrapper(
             showWalletUIs: confirmEachStep,
           };
         } else if (tx.data && tx.data.startsWith("0xd0d4229a")) {
-          // Bridge burn: depositForBurn
           updateBridgeProgress(
             "approval",
             "completed",
@@ -239,7 +193,6 @@ export function createPrivyTransactionWrapper(
           tx.data &&
           (tx.data.startsWith("0x8d7f3f70") || tx.data.length > 200)
         ) {
-          // Bridge mint: receiveMessage
           updateBridgeProgress("burn", "completed", "Step 2/3: Burn completed");
           updateBridgeProgress(
             "mint",
@@ -255,15 +208,11 @@ export function createPrivyTransactionWrapper(
           };
         }
 
-        // Only intercept if:
-        // 1. We have uiOptions and sendTransactionFn is available
-        // 2. Gas sponsorship is NOT enabled (when enabled, EIP-7702 handles sponsorship)
         const shouldIntercept =
           Object.keys(uiOptions).length > 0 &&
           sendTransactionFn &&
           !gasSponsorshipEnabled;
 
-        // Use Privy's sendTransaction with custom UI if available
         if (shouldIntercept) {
           try {
             const transaction: any = {
@@ -282,7 +231,6 @@ export function createPrivyTransactionWrapper(
 
             const result = await sendTransactionFn(transaction, { uiOptions });
 
-            // Extract and validate transaction hash
             let hashString: string | null = null;
             if (typeof result === "string") {
               hashString = result;
@@ -305,7 +253,6 @@ export function createPrivyTransactionWrapper(
               }
             }
 
-            // Validate hash format - if invalid, fall back to original provider
             if (
               !hashString ||
               !hashString.startsWith("0x") ||
@@ -322,7 +269,6 @@ export function createPrivyTransactionWrapper(
               return originalProvider.request(args);
             }
 
-            // Update progress when transaction is successfully sent
             if (isApprovalTransaction) {
               updateBridgeProgress(
                 "approval",

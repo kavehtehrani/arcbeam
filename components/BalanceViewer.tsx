@@ -72,21 +72,9 @@ export default function BalanceViewer() {
         return;
       }
 
-      // Double-check we're using the correct wallet address
       if (embeddedWallet.address !== walletAddress) {
-        console.warn("Wallet address mismatch - using embedded wallet address");
         return;
       }
-
-      // Log which wallet we're using for debugging
-      console.log("Fetching balances for Privy embedded wallet:", {
-        address: walletAddress,
-        walletType: embeddedWallet.walletClientType,
-        allWallets: wallets.map((w) => ({
-          address: w.address,
-          type: w.walletClientType,
-        })),
-      });
 
       fetchingRef.current = true;
       setLoading(true);
@@ -201,45 +189,8 @@ export default function BalanceViewer() {
           },
         });
         hasFetchedRef.current = true;
-        console.log("Balances fetched successfully:", {
-          arc: {
-            usdc: arcUSDC,
-            eth: "0",
-          },
-          sepolia: {
-            usdc: sepoliaUSDC,
-            eth: sepoliaETH,
-          },
-          baseSepolia: { usdc: baseSepoliaUSDC, eth: baseSepoliaETH },
-          arbitrumSepolia: {
-            usdc: arbitrumSepoliaUSDC,
-            eth: arbitrumSepoliaETH,
-          },
-          opSepolia: {
-            usdc: opSepoliaUSDC,
-            eth: opSepoliaETH,
-          },
-          polygonAmoy: {
-            usdc: polygonAmoyUSDC,
-            eth: polygonAmoyETH,
-          },
-          inkTestnet: {
-            usdc: inkTestnetUSDC,
-            eth: inkTestnetETH,
-          },
-          walletAddress,
-        });
       } catch (error) {
         console.error("Error fetching balances:", error);
-        console.error("Error details:", {
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          walletAddress,
-          rpcUrls: {
-            sepolia: ETHEREUM_SEPOLIA_CHAIN.rpcUrl,
-            baseSepolia: BASE_SEPOLIA_CHAIN.rpcUrl,
-          },
-        });
       } finally {
         setLoading(false);
         fetchingRef.current = false;
@@ -277,7 +228,6 @@ export default function BalanceViewer() {
     }
   }, [ready, authenticated, embeddedWallet, walletAddress, fetchBalances]);
 
-  // Listen for balance refresh events from BridgeForm
   useEffect(() => {
     const handleRefresh = () => {
       fetchBalances(true);
@@ -308,12 +258,10 @@ export default function BalanceViewer() {
     );
   }
 
-  // Helper function to check if balance is greater than zero
   const isBalanceGreaterThanZero = (balance: string): boolean => {
     return parseFloat(balance) > 0;
   };
 
-  // Create network items grouped by chain
   const networkItems = [
     {
       chain: "Arc Testnet",
@@ -510,7 +458,6 @@ export default function BalanceViewer() {
           ) : (
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
               {networkItems.map((network, index) => {
-                // Filter out tokens with zero balance
                 const nonZeroTokens = network.tokens.filter((token) => {
                   const balanceStr = String(token.balance).trim();
                   if (!balanceStr || balanceStr === "0" || balanceStr === "") {
@@ -525,7 +472,6 @@ export default function BalanceViewer() {
                     key={`${network.chain}-${index}`}
                     className="flex min-h-[100px] flex-col rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-700/50"
                   >
-                    {/* Card Header */}
                     <div className="flex min-h-[3.5rem] items-center border-b border-gray-200 px-4 py-3 dark:border-gray-600">
                       <div className="flex items-center gap-2">
                         {network.logoPath ? (
@@ -544,7 +490,6 @@ export default function BalanceViewer() {
                         </p>
                       </div>
                     </div>
-                    {/* Balances Section */}
                     <div className="flex flex-1 flex-col space-y-2 p-4">
                       {nonZeroTokens.length === 0 && !loading ? (
                         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -564,22 +509,9 @@ export default function BalanceViewer() {
                             ) : (
                               <p className="text-base md:text-lg font-semibold text-gray-900 dark:text-white text-right whitespace-nowrap">
                                 {(() => {
-                                  // Parse the balance string directly to avoid precision issues
                                   const balanceStr = String(
                                     token.balance
                                   ).trim();
-
-                                  // Debug logging for Arc Testnet USDC
-                                  if (
-                                    token.symbol === "USDC" &&
-                                    network.chain === "Arc Testnet"
-                                  ) {
-                                    console.log("Arc USDC Balance Debug:", {
-                                      rawBalance: token.balance,
-                                      balanceStr,
-                                      balanceType: typeof token.balance,
-                                    });
-                                  }
 
                                   if (
                                     !balanceStr ||
@@ -590,31 +522,9 @@ export default function BalanceViewer() {
                                   }
                                   const balanceNum = parseFloat(balanceStr);
                                   if (isNaN(balanceNum)) {
-                                    console.warn(
-                                      `Invalid balance for ${token.symbol}:`,
-                                      token.balance,
-                                      "raw string:",
-                                      balanceStr
-                                    );
                                     return "0.00";
                                   }
-                                  // Format with fixed decimal places
-                                  const formatted = balanceNum.toFixed(
-                                    token.decimals
-                                  );
-
-                                  // Debug logging for Arc Testnet USDC
-                                  if (
-                                    token.symbol === "USDC" &&
-                                    network.chain === "Arc Testnet"
-                                  ) {
-                                    console.log("Arc USDC Balance Formatted:", {
-                                      balanceNum,
-                                      formatted,
-                                    });
-                                  }
-
-                                  return formatted;
+                                  return balanceNum.toFixed(token.decimals);
                                 })()}
                               </p>
                             )}

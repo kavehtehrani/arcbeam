@@ -67,7 +67,7 @@ export default function BridgeForm() {
   const [arcBalance, setArcBalance] = useState("0");
   const [, setCurrentAllowance] = useState<string>("0");
   const [spenderAddress, setSpenderAddress] = useState<string>("");
-  const confirmEachStep = false; // Always off - checkbox hidden
+  const confirmEachStep = false;
   const [enableGasSponsorship, setEnableGasSponsorship] =
     useState<boolean>(true); // Default: on
   const [bridgeSteps, setBridgeSteps] = useState<
@@ -153,17 +153,14 @@ export default function BridgeForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, authenticated, wallet]);
 
-  // Refresh balances when all bridge steps complete
   useEffect(() => {
     if (bridgeSteps.length === 3) {
       const allCompleted = bridgeSteps.every(
         (step) => step.status === "completed"
       );
       if (allCompleted) {
-        // Refresh balances after a short delay to allow blockchain to update
         const timeoutId = setTimeout(() => {
           fetchBalances();
-          // Also trigger BalanceViewer refresh if it's listening
           if (typeof window !== "undefined") {
             window.dispatchEvent(new CustomEvent("refreshBalances"));
           }
@@ -180,7 +177,6 @@ export default function BridgeForm() {
     }
   }, [defaultAmount, amount, ready, authenticated]);
 
-  // Parse URL parameters for payment links
   useEffect(() => {
     if (typeof window === "undefined" || !ready || !authenticated) return;
 
@@ -190,22 +186,15 @@ export default function BridgeForm() {
     const amountParam = params.get("amount");
     const token = params.get("token");
 
-    // Only auto-fill if we have all required parameters and token is USDC
     if (address && chainId && amountParam && token === "USDC") {
       const requestedChain = getChainById(parseInt(chainId));
       if (requestedChain && isAddress(address)) {
-        // Flip to send mode to show the payment form
         setIsReceiveMode(false);
-        // Set destination chain (where the payment should go)
         setDestinationChain(requestedChain);
-        // Set recipient address
         setRecipientAddress(address);
-        // Set amount
         setAmount(amountParam);
-        // Show notification that payment link was detected
         setPaymentLinkDetected(true);
         setTimeout(() => setPaymentLinkDetected(false), 5000);
-        // Clear URL parameters after parsing
         const newUrl = window.location.pathname;
         window.history.replaceState({}, "", newUrl);
       }
@@ -213,7 +202,6 @@ export default function BridgeForm() {
   }, [ready, authenticated]);
 
   const fetchBalances = async () => {
-    // Only fetch balances for Privy embedded wallet
     if (!wallet || wallet.walletClientType !== "privy") return;
     try {
       const [
@@ -326,7 +314,6 @@ export default function BridgeForm() {
       return;
     }
 
-    // Validate recipient address if provided - must be a valid EVM address
     if (recipientAddress.trim()) {
       const trimmedAddress = recipientAddress.trim();
       if (!isAddress(trimmedAddress)) {
@@ -340,7 +327,6 @@ export default function BridgeForm() {
         }
         return;
       }
-      // Also check if it's the same as the sender (which would be redundant)
       if (trimmedAddress.toLowerCase() === wallet.address.toLowerCase()) {
         setError(
           "Recipient address is the same as your wallet address. Leave it empty to send to yourself."
@@ -365,7 +351,6 @@ export default function BridgeForm() {
     setError("");
     setTxHash("");
 
-    // Initialize bridge steps tracking
     setBridgeSteps([
       {
         step: "approval",
@@ -384,7 +369,6 @@ export default function BridgeForm() {
       },
     ]);
 
-    // Set up callback for progress updates
     if (typeof window !== "undefined") {
       (window as any).bridgeProgressCallback = (progress: {
         step: string;
@@ -419,16 +403,9 @@ export default function BridgeForm() {
         return;
       }
 
-      // Switch to source chain before creating adapter (following reference implementation pattern)
-      // This ensures the chain is active in the provider before the adapter tries to use it
       try {
-        console.log(
-          `Switching to source chain ${sourceChain.name} (${sourceChain.chainId})...`
-        );
         await switchChain({ chainId: sourceChain.chainId });
-        // Give it a moment to complete the switch (reference uses 1000ms, we use 1500ms to be safe)
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        console.log("Chain switch completed");
       } catch (error) {
         console.warn(
           `Could not switch to ${sourceChain.name} via wagmi:`,
@@ -480,10 +457,6 @@ export default function BridgeForm() {
         return;
       }
 
-      // Create wrapped provider that intercepts transactions for custom UI messages
-      // The wrapper passes through all non-transaction requests (chain switching, etc.)
-      // so the adapter can still switch chains and perform other operations
-      // We need to determine if gas sponsorship will be enabled before creating the wrapper
       const ARC_CHAIN_ID = 5042002;
       const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
       const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
@@ -503,17 +476,12 @@ export default function BridgeForm() {
       let finalEip1193Provider = createPrivyTransactionWrapper(
         ethereumProvider,
         privySendTransaction,
-        confirmEachStep, // Pass the confirmEachStep setting
-        willEnableSponsorship // Pass whether gas sponsorship will be enabled
+        confirmEachStep,
+        willEnableSponsorship
       );
 
-      // Wrap with EIP-7702 transaction wrapper if gas sponsorship is enabled
-      // (isArcSource, isArcDestination, etc. are already defined above)
       if (willEnableSponsorship) {
         try {
-          // Create a wrapper function that matches the expected signature
-          // When confirmEachStep is false, pass showWalletUIs: false to suppress popups
-          // When confirmEachStep is true, call without options (use Privy's default)
           const signAuthorizationWrapper = async (params: {
             contractAddress: `0x${string}`;
             chainId?: number;
@@ -527,12 +495,10 @@ export default function BridgeForm() {
               executor: params.executor,
             };
 
-            // Always pass showWalletUIs: false since confirmEachStep is always false
             const authOptions: any = { showWalletUIs: false };
             return await signAuthorization(authInput, authOptions);
           };
 
-          // Function to get public client for any chain
           const getPublicClientForChain = (chainConfig: ChainConfig) => {
             return createPublicClientForChain(chainConfig);
           };
@@ -545,8 +511,8 @@ export default function BridgeForm() {
               walletClient,
               signAuthorization: signAuthorizationWrapper,
               getPublicClientForChain,
-              confirmEachStep, // Pass the confirmEachStep setting
-              originalProvider: ethereumProvider, // Pass the true original provider (before PrivyTransactionWrapper)
+              confirmEachStep,
+              originalProvider: ethereumProvider,
             }
           );
 
@@ -588,28 +554,16 @@ export default function BridgeForm() {
 
       const provider = new BrowserProvider(finalEip1193Provider as any);
 
-      console.log("Starting bridge transaction...");
-      console.log("BridgeForm: Source chain before bridgeUSDC:", {
-        chainId: sourceChain.chainId,
-        name: sourceChain.name,
-        bridgeKitChainName: sourceChain.bridgeKitChainName,
-      });
-      console.log("BridgeForm: Destination chain before bridgeUSDC:", {
-        chainId: destinationChain.chainId,
-        name: destinationChain.name,
-        bridgeKitChainName: destinationChain.bridgeKitChainName,
-      });
       const result = await bridgeUSDC({
         amount,
         sourceChain,
         destinationChain,
         userAddress: wallet.address,
         provider,
-        eip1193Provider: finalEip1193Provider, // Use wrapped provider so transactions are intercepted
-        recipientAddress: recipientAddress.trim() || undefined, // Only include if provided and not empty
+        eip1193Provider: finalEip1193Provider,
+        recipientAddress: recipientAddress.trim() || undefined,
       });
 
-      // Update bridge steps based on result
       if (result?.steps && result.steps.length > 0) {
         setBridgeSteps((prev) => {
           const updated = [...prev];
@@ -655,9 +609,6 @@ export default function BridgeForm() {
         setTxHash(result.sourceTxHash);
         setStatus("success");
         setError("");
-
-        // Balances will be refreshed automatically when all steps complete
-        // (handled by the useEffect watching bridgeSteps)
       } else if (result.state === "partial") {
         setTxHash(result.sourceTxHash || "");
         setStatus("error");
@@ -702,29 +653,20 @@ export default function BridgeForm() {
     setAmount(getAvailableBalance());
   };
 
-  // Helper function to check if gas sponsorship is available
-  // Arc supports conditional sponsorship:
-  // - If Arc is source: sponsorship available for destination chain (mint step)
-  // - If Arc is destination: sponsorship available for source chain (approval/burn steps)
-  // - Otherwise: normal EIP-7702 support check
   const isGasSponsorshipAvailable = (): boolean => {
     const ARC_CHAIN_ID = 5042002;
     const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
     const isArcDestination = destinationChain.chainId === ARC_CHAIN_ID;
 
     if (isArcSource) {
-      // Arc is source: sponsorship available if destination supports EIP-7702
       return isEIP7702Supported(destinationChain.chainId);
     } else if (isArcDestination) {
-      // Arc is destination: sponsorship available if source supports EIP-7702
       return isEIP7702Supported(sourceChain.chainId);
     } else {
-      // Normal case: check if source chain supports EIP-7702
       return isEIP7702Supported(sourceChain.chainId);
     }
   };
 
-  // Get help text for gas sponsorship based on Arc's role
   const getGasSponsorshipHelpText = (): string => {
     const ARC_CHAIN_ID = 5042002;
     const isArcSource = sourceChain.chainId === ARC_CHAIN_ID;
@@ -751,28 +693,18 @@ export default function BridgeForm() {
     }
   };
 
-  // Initialize receiveRecipient with wallet address when available
   useEffect(() => {
     if (wallet?.address && !receiveRecipient) {
       setReceiveRecipient(wallet.address);
     }
   }, [wallet?.address, receiveRecipient]);
 
-  // Initialize receiveRecipient with wallet address when available
-  useEffect(() => {
-    if (wallet?.address && !receiveRecipient) {
-      setReceiveRecipient(wallet.address);
-    }
-  }, [wallet?.address, receiveRecipient]);
-
-  // Generate payment request data for receive mode
   const paymentRequestData = useMemo(() => {
     const recipientAddress = receiveRecipient.trim() || wallet?.address;
     if (!recipientAddress || !receiveAmount || parseFloat(receiveAmount) <= 0) {
       return null;
     }
 
-    // Validate address if provided
     if (receiveRecipient.trim() && !isAddress(receiveRecipient.trim())) {
       return null;
     }
@@ -880,7 +812,6 @@ export default function BridgeForm() {
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      {/* Flip Container */}
       <div className="relative" style={{ perspective: "1000px" }}>
         <div
           className="relative w-full transition-transform duration-500"
@@ -889,7 +820,6 @@ export default function BridgeForm() {
             transform: isReceiveMode ? "rotateY(180deg)" : "rotateY(0deg)",
           }}
         >
-          {/* Send Side (Front) */}
           <div
             className="w-full"
             style={{
@@ -939,7 +869,6 @@ export default function BridgeForm() {
             </button>
             <div className="p-6">
               <form onSubmit={handleBridge} className="space-y-5">
-                {/* Payment Link Detected Notification */}
                 {paymentLinkDetected && (
                   <div className="rounded-lg border border-green-300 bg-green-50 p-4 dark:border-green-700 dark:bg-green-900/20">
                     <div className="flex items-center gap-2">
@@ -1220,7 +1149,6 @@ export default function BridgeForm() {
                   )}
                 </div>
 
-                {/* Bridge Progress Steps */}
                 {(status === "bridging" || status === "approving") &&
                   bridgeSteps.length > 0 && (
                     <BridgeProgress steps={bridgeSteps} />
@@ -1374,7 +1302,6 @@ export default function BridgeForm() {
             </div>
           </div>
 
-          {/* Receive Side (Back) */}
           <div
             className="absolute inset-0 w-full overflow-y-auto"
             style={{
@@ -1425,9 +1352,7 @@ export default function BridgeForm() {
             </button>
             <div className="p-6">
               <div className="space-y-4">
-                {/* Chain and Amount on same line */}
                 <div className="grid grid-cols-3 gap-4">
-                  {/* Chain Selection */}
                   <div className="col-span-2">
                     <ChainSelect
                       value={receiveChain}
@@ -1437,7 +1362,6 @@ export default function BridgeForm() {
                     />
                   </div>
 
-                  {/* Amount Input */}
                   <div className="col-span-1">
                     <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                       Amount (USDC)
@@ -1454,7 +1378,6 @@ export default function BridgeForm() {
                   </div>
                 </div>
 
-                {/* Recipient Address Input */}
                 <div className="mt-4">
                   <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden dark:border-gray-700 dark:bg-gray-700/50">
                     <div className="flex items-stretch">
@@ -1486,11 +1409,9 @@ export default function BridgeForm() {
                   </div>
                 </div>
 
-                {/* Payment Link and QR Code Display - Always visible when amount is entered */}
                 {paymentRequestData && (
                   <div className="mt-4">
                     <div className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-gray-50 overflow-hidden dark:border-gray-700 dark:bg-gray-700/50">
-                      {/* Payment Link - At the top, full width, no margins */}
                       <div className="w-full border-b border-gray-300 dark:border-gray-600">
                         <div className="flex items-stretch">
                           <label className="flex items-center px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap border-r border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800">
@@ -1545,7 +1466,6 @@ export default function BridgeForm() {
                         </div>
                       </div>
 
-                      {/* Generate QR Button */}
                       <div className="p-4 w-full flex flex-col items-center">
                         <button
                           onClick={() => setShowQRModal(true)}
@@ -1589,7 +1509,6 @@ export default function BridgeForm() {
         </div>
       </div>
 
-      {/* QR Code Modal */}
       {showQRModal && paymentRequestData && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -1599,7 +1518,6 @@ export default function BridgeForm() {
             className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-800"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
               onClick={() => setShowQRModal(false)}
               className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -1619,7 +1537,6 @@ export default function BridgeForm() {
               </svg>
             </button>
 
-            {/* QR Code Display */}
             <div className="flex flex-col items-center">
               <div className="relative">
                 <QRCodeSVG

@@ -37,16 +37,13 @@ export default function PaymentRequestModal({
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // Only use Privy embedded wallet - ignore external wallets like MetaMask
   const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
   const walletAddress = embeddedWallet?.address;
 
-  // Filter chains that support USDC (exclude chains without USDC)
   const availableChains = SUPPORTED_CHAINS.filter(
     (chain) => chain.usdcAddress && chain.usdcAddress !== ""
   );
 
-  // Parse URL parameters on mount to auto-fill payment request
   useEffect(() => {
     if (typeof window === "undefined" || !isOpen) return;
 
@@ -58,18 +55,14 @@ export default function PaymentRequestModal({
     if (address && chainId && amountParam) {
       const chain = getChainById(parseInt(chainId));
       if (chain) {
-        // Defer state updates to avoid cascading renders
         setTimeout(() => {
           setSelectedChain(chain);
           setAmount(amountParam);
         }, 0);
-        // Note: We don't set recipientAddress here since this is for requesting payment
-        // The address in the URL is the recipient (the person requesting payment)
       }
     }
   }, [isOpen]);
 
-  // Generate payment request data
   const paymentRequestData: PaymentRequestData | null = useMemo(() => {
     if (!walletAddress || !amount || parseFloat(amount) <= 0) {
       return null;
@@ -84,12 +77,10 @@ export default function PaymentRequestModal({
     };
   }, [walletAddress, selectedChain, amount]);
 
-  // Generate QR code data as JSON string
   const qrCodeData = paymentRequestData
     ? JSON.stringify(paymentRequestData)
     : "";
 
-  // Generate payment link
   const paymentLink = useMemo(() => {
     if (!paymentRequestData) return "";
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -118,7 +109,6 @@ export default function PaymentRequestModal({
 
   const chainLogoPath = getChainLogoPath(selectedChain.name);
 
-  // Close modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
@@ -197,15 +187,12 @@ export default function PaymentRequestModal({
           </svg>
         </button>
 
-        {/* Header */}
         <div className="bg-arcbeam-light-blue-gradient px-6 py-4 dark:bg-arcbeam-light-blue-gradient">
           <h2 className="text-lg font-semibold text-white">Request Payment</h2>
         </div>
 
-        {/* Content */}
         <div className="p-6">
           <div className="space-y-4">
-            {/* Chain Selection */}
             <div>
               <ChainSelect
                 value={selectedChain}
@@ -215,7 +202,6 @@ export default function PaymentRequestModal({
               />
             </div>
 
-            {/* Amount Input */}
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Amount (USDC)
@@ -231,7 +217,6 @@ export default function PaymentRequestModal({
               />
             </div>
 
-            {/* QR Code Display */}
             {paymentRequestData && (
               <div className="mt-6 space-y-4">
                 <div className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-700/50">
@@ -252,7 +237,6 @@ export default function PaymentRequestModal({
                   </div>
                 </div>
 
-                {/* Payment Details */}
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/50">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -294,9 +278,7 @@ export default function PaymentRequestModal({
                   </div>
                 </div>
 
-                {/* Share Options */}
                 <div className="space-y-2">
-                  {/* Copy Payment Link */}
                   <button
                     onClick={() => copyToClipboard(paymentLink, setLinkCopied)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
@@ -338,7 +320,6 @@ export default function PaymentRequestModal({
                     )}
                   </button>
 
-                  {/* Copy QR Data Button */}
                   <button
                     onClick={() => copyToClipboard(qrCodeData, setCopied)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
