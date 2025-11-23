@@ -12,8 +12,18 @@ import {
 import { useSetActiveWallet } from "@privy-io/wagmi";
 import { useSwitchChain, useWalletClient } from "wagmi";
 import { BrowserProvider, isAddress } from "ethers";
+import { createWalletClient, custom } from "viem";
+import {
+  sepolia,
+  baseSepolia,
+  arbitrumSepolia,
+  optimismSepolia,
+  polygonAmoy,
+  inkSepolia,
+} from "viem/chains";
 import {
   bridgeUSDC,
+  transferUSDC,
   getUSDCBalance,
   getFormattedAllowance,
   getTokenMessengerAddress,
@@ -314,9 +324,29 @@ export default function BridgeForm() {
       return;
     }
 
-    if (recipientAddress.trim()) {
-      const trimmedAddress = recipientAddress.trim();
-      if (!isAddress(trimmedAddress)) {
+    // Check if source and destination are the same
+    const isSameChain = sourceChain.chainId === destinationChain.chainId;
+    const trimmedRecipient = recipientAddress.trim();
+    const hasRecipient = trimmedRecipient && isAddress(trimmedRecipient);
+    const recipientIsDifferent =
+      hasRecipient &&
+      trimmedRecipient.toLowerCase() !== wallet.address.toLowerCase();
+
+    // For same chain transfers, recipient must be different from sender
+    if (isSameChain && !hasRecipient) {
+      setError(
+        "Please enter a recipient address when sending on the same network."
+      );
+      setStatus("error");
+      isBridgingRef.current = false;
+      if (typeof window !== "undefined") {
+        delete (window as any).bridgeProgressCallback;
+      }
+      return;
+    }
+
+    if (hasRecipient) {
+      if (!isAddress(trimmedRecipient)) {
         setError(
           "Invalid recipient address. Please enter a valid Ethereum address (0x followed by 40 hex characters)."
         );
@@ -327,7 +357,26 @@ export default function BridgeForm() {
         }
         return;
       }
-      if (trimmedAddress.toLowerCase() === wallet.address.toLowerCase()) {
+      // For same chain, recipient must be different
+      if (
+        isSameChain &&
+        trimmedRecipient.toLowerCase() === wallet.address.toLowerCase()
+      ) {
+        setError(
+          "Recipient address must be different from your wallet address when sending on the same network."
+        );
+        setStatus("error");
+        isBridgingRef.current = false;
+        if (typeof window !== "undefined") {
+          delete (window as any).bridgeProgressCallback;
+        }
+        return;
+      }
+      // For different chains, can't send to self (bridge doesn't support this)
+      if (
+        !isSameChain &&
+        trimmedRecipient.toLowerCase() === wallet.address.toLowerCase()
+      ) {
         setError(
           "Recipient address is the same as your wallet address. Leave it empty to send to yourself."
         );
@@ -351,6 +400,190 @@ export default function BridgeForm() {
     setError("");
     setTxHash("");
 
+    // If same chain and recipient is different, use direct transfer
+    if (isSameChain && recipientIsDifferent) {
+      setBridgeSteps([
+        {
+          step: "transfer",
+          description: "Transferring USDC on same network",
+          status: "pending",
+        },
+      ]);
+
+      try {
+        await switchChain({ chainId: sourceChain.chainId });
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      } catch (error) {
+        console.warn(
+          `Could not switch to ${sourceChain.name} via wagmi:`,
+          error
+        );
+        // If switching fails, try to add the chain to the wallet (for Arc Testnet)
+        if (sourceChain.chainId === 5042002) {
+          try {
+            const ethereumProvider = await wallet.getEthereumProvider();
+            if (ethereumProvider && ethereumProvider.request) {
+              console.log("Attempting to add Arc Testnet to wallet...");
+              await ethereumProvider.request({
+                method: "wallet_addEthereumChain",
+                params: [
+                  {
+                    chainId: `0x${sourceChain.chainId.toString(16)}`,
+                    chainName: sourceChain.name,
+                    nativeCurrency: {
+                      name: "USDC",
+                      symbol: "USDC",
+                      decimals: 18,
+                    },
+                    rpcUrls: [sourceChain.rpcUrl],
+                    blockExplorerUrls: sourceChain.blockExplorer
+                      ? [sourceChain.blockExplorer]
+                      : [],
+                  },
+                ],
+              });
+              await switchChain({ chainId: sourceChain.chainId });
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          } catch (addChainError) {
+            console.warn("Could not add Arc Testnet to wallet:", addChainError);
+          }
+        }
+      }
+
+      const ethereumProvider = await wallet.getEthereumProvider();
+      if (!ethereumProvider) {
+        setError("Failed to get Ethereum provider from wallet");
+        setStatus("error");
+        isBridgingRef.current = false;
+        return;
+      }
+
+      const provider = new BrowserProvider(ethereumProvider as any);
+
+      // Check if gas sponsorship should be used
+      const ARC_CHAIN_ID = 5042002;
+      const isArcChain = sourceChain.chainId === ARC_CHAIN_ID;
+      const sourceSupportsEIP7702 = isEIP7702Supported(sourceChain.chainId);
+
+      const willEnableSponsorship =
+        enableGasSponsorship &&
+        walletClient &&
+        !isArcChain &&
+        sourceSupportsEIP7702;
+
+      // Create wallet client for gas sponsorship if needed
+      let viemWalletClient: any = null;
+      let signAuthorizationWrapper: any = null;
+
+      if (willEnableSponsorship) {
+        try {
+          // Map chain ID to viem chain
+          let viemChain;
+          if (sourceChain.chainId === 11155111) viemChain = sepolia;
+          else if (sourceChain.chainId === 84532) viemChain = baseSepolia;
+          else if (sourceChain.chainId === 421614) viemChain = arbitrumSepolia;
+          else if (sourceChain.chainId === 11155420)
+            viemChain = optimismSepolia;
+          else if (sourceChain.chainId === 80002) viemChain = polygonAmoy;
+          else if (sourceChain.chainId === 763373) viemChain = inkSepolia;
+          else viemChain = sepolia; // fallback
+
+          viemWalletClient = createWalletClient({
+            account: wallet.address as `0x${string}`,
+            chain: viemChain,
+            transport: custom(ethereumProvider as any),
+          });
+
+          signAuthorizationWrapper = async (params: {
+            contractAddress: `0x${string}`;
+            chainId?: number;
+            nonce?: number;
+            executor?: `0x${string}` | "self";
+          }): Promise<any> => {
+            const authInput = {
+              contractAddress: params.contractAddress,
+              chainId: params.chainId,
+              nonce: params.nonce,
+              executor: params.executor,
+            };
+
+            const authOptions: any = { showWalletUIs: false };
+            return await signAuthorization(authInput, authOptions);
+          };
+
+          console.log(
+            `EIP-7702 gas sponsorship enabled for transfer on ${sourceChain.name}`
+          );
+        } catch (error) {
+          console.error("Failed to setup gas sponsorship:", error);
+          // Continue without gas sponsorship
+        }
+      } else if (enableGasSponsorship && !willEnableSponsorship) {
+        console.warn(
+          `EIP-7702 gas sponsorship is not available for ${sourceChain.name}. Using regular transactions.`
+        );
+      }
+
+      setBridgeSteps([
+        {
+          step: "transfer",
+          description: willEnableSponsorship
+            ? "Transferring USDC with gas sponsorship"
+            : "Transferring USDC on same network",
+          status: "processing",
+        },
+      ]);
+
+      const transferResult = await transferUSDC({
+        amount,
+        chain: sourceChain,
+        userAddress: wallet.address,
+        provider,
+        recipientAddress: trimmedRecipient,
+        useGasSponsorship: willEnableSponsorship,
+        walletClient: viemWalletClient,
+        signAuthorization: signAuthorizationWrapper,
+        ethereumProvider,
+      });
+
+      if (transferResult.state === "success" && transferResult.txHash) {
+        setTxHash(transferResult.txHash);
+        setStatus("success");
+        setError("");
+        setBridgeSteps([
+          {
+            step: "transfer",
+            description: "Transfer completed successfully",
+            status: "completed",
+          },
+        ]);
+        // Refresh balances after a delay
+        setTimeout(() => {
+          fetchBalances();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("refreshBalances"));
+          }
+        }, 2000);
+      } else {
+        setStatus("error");
+        setError(transferResult.error || "Transfer failed");
+        setBridgeSteps([
+          {
+            step: "transfer",
+            description: `Transfer failed: ${
+              transferResult.error || "Unknown error"
+            }`,
+            status: "error",
+          },
+        ]);
+      }
+
+      isBridgingRef.current = false;
+      return;
+    }
+
+    // Otherwise, use bridge SDK
     setBridgeSteps([
       {
         step: "approval",
@@ -899,37 +1132,6 @@ export default function BridgeForm() {
                       value={sourceChain}
                       onChange={(chain) => {
                         setSourceChain(chain);
-                        if (chain.chainId === destinationChain.chainId) {
-                          if (chain.chainId === ARC_CHAIN.chainId) {
-                            setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
-                          } else if (
-                            chain.chainId === ETHEREUM_SEPOLIA_CHAIN.chainId
-                          ) {
-                            setDestinationChain(ARC_CHAIN);
-                          } else if (
-                            chain.chainId === BASE_SEPOLIA_CHAIN.chainId
-                          ) {
-                            setDestinationChain(ARC_CHAIN);
-                          } else if (
-                            chain.chainId === ARBITRUM_SEPOLIA_CHAIN.chainId
-                          ) {
-                            setDestinationChain(ARC_CHAIN);
-                          } else if (
-                            chain.chainId === OP_SEPOLIA_CHAIN.chainId
-                          ) {
-                            setDestinationChain(ARC_CHAIN);
-                          } else if (
-                            chain.chainId === POLYGON_AMOY_CHAIN.chainId
-                          ) {
-                            setDestinationChain(ARC_CHAIN);
-                          } else if (
-                            chain.chainId === INK_TESTNET_CHAIN.chainId
-                          ) {
-                            setDestinationChain(ARC_CHAIN);
-                          } else {
-                            setDestinationChain(ETHEREUM_SEPOLIA_CHAIN);
-                          }
-                        }
                       }}
                       options={[
                         ARC_CHAIN,
@@ -965,9 +1167,7 @@ export default function BridgeForm() {
                       label="Destination Chain"
                       value={destinationChain}
                       onChange={(chain) => {
-                        if (chain.chainId !== sourceChain.chainId) {
-                          setDestinationChain(chain);
-                        }
+                        setDestinationChain(chain);
                       }}
                       options={[
                         ARC_CHAIN,
@@ -977,9 +1177,7 @@ export default function BridgeForm() {
                         OP_SEPOLIA_CHAIN,
                         POLYGON_AMOY_CHAIN,
                         INK_TESTNET_CHAIN,
-                      ].filter(
-                        (chain) => chain.chainId !== sourceChain.chainId
-                      )}
+                      ]}
                       disabled={status === "bridging" || status === "approving"}
                     />
                   </div>
@@ -1024,15 +1222,22 @@ export default function BridgeForm() {
                   {recipientAddress.trim() &&
                     isAddress(recipientAddress.trim()) && (
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Tokens will be sent to:{" "}
+                        {sourceChain.chainId === destinationChain.chainId
+                          ? "Tokens will be transferred to:"
+                          : "Tokens will be bridged to:"}{" "}
                         {recipientAddress.trim().slice(0, 6)}...
                         {recipientAddress.trim().slice(-4)} on{" "}
                         {destinationChain.name}
+                        {sourceChain.chainId === destinationChain.chainId &&
+                          " (same network transfer)"}
                       </p>
                     )}
                   {!recipientAddress.trim() && (
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Tokens will be sent to your wallet address on{" "}
+                      Tokens will be{" "}
+                      {sourceChain.chainId === destinationChain.chainId
+                        ? "transferred to your wallet address on"
+                        : "bridged to your wallet address on"}{" "}
                       {destinationChain.name}
                     </p>
                   )}
@@ -1197,7 +1402,7 @@ export default function BridgeForm() {
                       </svg>
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-green-900 dark:text-green-300">
-                          Bridge successful!
+                          Send successful!
                         </p>
                         <p className="mt-1 text-xs text-green-700 dark:text-green-400">
                           Transaction:{" "}
